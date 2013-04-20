@@ -733,6 +733,9 @@ static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 	u8 try_per_rate, i = 0, rix;
 	int is_probe = 0;
 
+        ath_current_rate_table = rate_table;
+        ath_current_tx_info = tx_info;
+
 	if (rate_control_send_low(sta, priv_sta, txrc))
 		return;
 
