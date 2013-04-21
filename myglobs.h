@@ -14,3 +14,6 @@ unsigned long ath_get_send_id(void);
 unsigned long ath_get_send_diff(void);
 u8 ath_get_send_rate(void);
 u8 ath_get_send_tries(void);
+
+void ath_inc_rotating_rix(void);
+u8 ath_get_rotating_rix(void);

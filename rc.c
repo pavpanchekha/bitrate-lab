@@ -721,6 +721,19 @@ static void ath_rc_rate_set_rtscts(struct ath_softc *sc,
 	tx_info->control.rts_cts_rate_idx = __ffs(bss_conf->basic_rates);
 }
 
+static void ath_get_rotating_rate(const struct ath_rate_table *rate_table,
+                                  struct ieee80211_tx_rate *rates,
+                                  struct ieee80211_tx_rate_control *txrc)
+{
+  int i = 1;
+  ath_rc_rate_set_series(rate_table, &rates[0], txrc,
+                         20, ath_get_rotating_rix(), 0);
+  for (; i < 4; i++) {
+    ath_rc_rate_set_series(rate_table, &rates[i], txrc,
+                           20, 0, 0);
+  }
+}
+
 static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 			 struct ieee80211_tx_rate_control *txrc)
 {
@@ -848,6 +861,10 @@ static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 	}
 
 	ath_rc_rate_set_rtscts(sc, rate_table, tx_info);
+
+        /* 6.829 stuff */
+        
+        ath_get_rotating_rate(rate_table, rates, txrc);
 }
 
 static void ath_rc_update_per(struct ath_softc *sc,

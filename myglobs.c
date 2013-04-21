@@ -49,6 +49,7 @@ void ath_set_on_complete() {
   } else {
     ath_packet_send_retries = ath_current_tx_info->control.rates[0].count;
   }
+  ath_inc_rotating_rix();
 }
 
 unsigned long ath_get_send_id() {
@@ -65,4 +66,18 @@ u8 ath_get_send_tries() {
 
 u8 ath_get_send_rate() {
   return ath_packet_send_rate;
+}
+
+static u8 ath_rotating_rix = 0;
+
+void ath_inc_rotating_rix() {
+  if (ath_current_rate_table != 0 && ath_rotating_rix < ath_current_rate_table->rate_cnt - 0) {
+    ath_rotating_rix++;
+  } else {
+    ath_rotating_rix = 0;
+  }
+}
+
+u8 ath_get_rotating_rix() {
+  return ath_rotating_rix;
 }
