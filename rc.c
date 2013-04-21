@@ -19,6 +19,7 @@
 #include <linux/export.h>
 
 #include "ath9k.h"
+#include "myglobs.h"
 
 static const struct ath_rate_table ar5416_11na_ratetable = {
 	68,
@@ -733,9 +734,6 @@ static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 	u8 try_per_rate, i = 0, rix;
 	int is_probe = 0;
 
-        ath_current_rate_table = rate_table;
-        ath_current_tx_info = tx_info;
-
 	if (rate_control_send_low(sta, priv_sta, txrc))
 		return;
 
@@ -753,6 +751,11 @@ static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 
 	rate_table = ath_rc_priv->rate_table;
 	rix = ath_rc_get_highest_rix(ath_rc_priv, &is_probe);
+
+        /* Added for 6.829 */
+        ath_set_current_rate_table(rate_table);
+        ath_set_current_tx_info(tx_info);
+
 
 	if (conf_is_ht(&sc->hw->conf) &&
 	    (sta->ht_cap.cap & IEEE80211_HT_CAP_LDPC_CODING))

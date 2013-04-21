@@ -18,6 +18,7 @@
 #include <linux/delay.h>
 #include "ath9k.h"
 #include "btcoex.h"
+#include "procfs.h"
 
 static void ath9k_set_assoc_state(struct ath_softc *sc,
 				  struct ieee80211_vif *vif);
@@ -669,6 +670,9 @@ static int ath9k_start(struct ieee80211_hw *hw)
 
 	ath9k_ps_restore(sc);
 
+        /* 6.829 stufff */
+        ath_init_procfile();
+
 	return 0;
 }
 
@@ -820,6 +824,9 @@ static void ath9k_stop(struct ieee80211_hw *hw)
 	sc->ps_idle = prev_idle;
 
 	mutex_unlock(&sc->mutex);
+
+        /* 6.829 stuff */
+        ath_cleanup_procfile();
 
 	ath_dbg(common, CONFIG, "Driver halt\n");
 }
