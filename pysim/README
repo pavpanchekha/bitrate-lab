@@ -1,0 +1,11 @@
+Plan: have a server and a client object, client can fill in different bit rate adaptation algorithms.
+
+What are we measuring? Throughput (packets/second?) 
+"For all the measurements, the throughput for each algorithm or bit-rate was measured by counting the number of packets that the sender received an acknowledgment for from the receiver."
+
+"SampleRate calculates the transmission time for each packet using the packet length, bit-rate, and the number of re-tries (including 802.11 back-off)."
+
+--if the send fails, what should we add to the record table as the TX time? Timeout time?
+
+samplerate returns a rate, and is passed (bitrate, ack_rcvd, TX_time)
+--is TX time RTT?
