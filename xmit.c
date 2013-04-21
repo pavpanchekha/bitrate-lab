@@ -17,6 +17,7 @@
 #include <linux/dma-mapping.h>
 #include "ath9k.h"
 #include "ar9003_mac.h"
+#include "myglobs.h"
 
 #define BITS_PER_BYTE           8
 #define OFDM_PLCP_BITS          22
@@ -2003,6 +2004,10 @@ int ath_tx_start(struct ieee80211_hw *hw, struct sk_buff *skb,
 
 	q = skb_get_queue_mapping(skb);
 
+        /* 6.829 stuff */
+
+        ath_set_on_send();
+
 	ath_txq_lock(sc, txq);
 	if (txq == sc->tx.txq_map[q] &&
 	    ++txq->pending_frames > sc->tx.txq_max_pending[q] &&
@@ -2032,6 +2037,8 @@ static void ath_tx_complete(struct ath_softc *sc, struct sk_buff *skb,
 	unsigned long flags;
 
 	ath_dbg(common, XMIT, "TX complete: skb: %p\n", skb);
+
+        ath_set_on_complete();
 
 	if (sc->sc_ah->caldata)
 		sc->sc_ah->caldata->paprd_packet_sent = true;

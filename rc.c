@@ -347,6 +347,7 @@ static const struct ath_rate_table ar5416_11a_ratetable = {
 	0,   /* Phy rates allowed initially */
 };
 
+// Mine ?
 static const struct ath_rate_table ar5416_11g_ratetable = {
 	12,
 	0,

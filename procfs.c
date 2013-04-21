@@ -18,9 +18,7 @@ ath_procfile_read(char *buffer,
     struct ieee80211_tx_info *info = ath_get_current_tx_info();
     struct ieee80211_tx_rate rate;
 
-    /*
-      TODO: Get `table` and `rate`
-     */
+    printk(KERN_INFO "Reading ATH proc file at %d with %d chars\n", offset, buffer_length);
 
     if (offset > 0) {
 	ret = 0;
@@ -30,17 +28,34 @@ ath_procfile_read(char *buffer,
 	ret = 0;
 	for (; i < IEEE80211_TX_MAX_RATES; i++) {
 	    rate = info->control.rates[i];
-	    if (rate.idx == -1) {
+	    if (rate.idx < 0) {
 		break;
 	    }
-	    ret += snprintf(buffer, buffer_length,
-			    "Rate %d at %d(%d) kbps, code %d: %d tries.\n",
+	    ret += snprintf(buffer + ret, buffer_length - ret,
+			    "Rate %d at %d(%d) kbps: %d tries.\n",
 			    rate.idx,
 			    table->info[rate.idx].ratekbps,
 			    table->info[rate.idx].user_ratekbps,
-			    table->info[rate.idx].ratecode,
 			    rate.count);
+            if (ret >= buffer_length) {
+              buffer[buffer_length] = '\0';
+              break;
+            }
 	}
+
+        i  = ath_get_send_rate();
+
+        ret += snprintf(buffer + ret, buffer_length - ret,
+                        "Last(%lu) took %lu ns / %d tries with rate %d at %d(%d) kbps\n",
+                        ath_get_send_id(),
+                        ath_get_send_diff(),
+                        ath_get_send_tries(),
+                        i,
+                        table->info[i].ratekbps,
+                        table->info[i].user_ratekbps);
+        if (ret >= buffer_length) {
+            buffer[buffer_length] = '\0';
+        }
     }
 
     return ret;
