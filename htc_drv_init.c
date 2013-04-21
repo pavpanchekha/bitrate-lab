@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include "htc.h"
 
 MODULE_AUTHOR("Atheros Communications");
@@ -28,6 +30,10 @@ int htc_modparam_nohwcrypt;
 module_param_named(nohwcrypt, htc_modparam_nohwcrypt, int, 0444);
 MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption");
 
+static int ath9k_htc_btcoex_enable;
+module_param_named(btcoex_enable, ath9k_htc_btcoex_enable, int, 0444);
+MODULE_PARM_DESC(btcoex_enable, "Enable wifi-BT coexistence");
+
 #define CHAN2G(_freq, _idx)  { \
 	.center_freq = (_freq), \
 	.hw_value = (_idx), \
@@ -40,8 +46,6 @@ MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption");
 	.hw_value = (_idx), \
 	.max_power = 20, \
 }
-
-#define ATH_HTC_BTCOEX_PRODUCT_ID "wb193"
 
 static struct ieee80211_channel ath9k_2ghz_channels[] = {
 	CHAN2G(2412, 0), /* Channel 1 */
@@ -545,20 +549,20 @@ static int ath9k_init_queues(struct ath9k_htc_priv *priv)
 		goto err;
 	}
 
-	if (!ath9k_htc_txq_setup(priv, WME_AC_BE)) {
+	if (!ath9k_htc_txq_setup(priv, IEEE80211_AC_BE)) {
 		ath_err(common, "Unable to setup xmit queue for BE traffic\n");
 		goto err;
 	}
 
-	if (!ath9k_htc_txq_setup(priv, WME_AC_BK)) {
+	if (!ath9k_htc_txq_setup(priv, IEEE80211_AC_BK)) {
 		ath_err(common, "Unable to setup xmit queue for BK traffic\n");
 		goto err;
 	}
-	if (!ath9k_htc_txq_setup(priv, WME_AC_VI)) {
+	if (!ath9k_htc_txq_setup(priv, IEEE80211_AC_VI)) {
 		ath_err(common, "Unable to setup xmit queue for VI traffic\n");
 		goto err;
 	}
-	if (!ath9k_htc_txq_setup(priv, WME_AC_VO)) {
+	if (!ath9k_htc_txq_setup(priv, IEEE80211_AC_VO)) {
 		ath_err(common, "Unable to setup xmit queue for VO traffic\n");
 		goto err;
 	}
@@ -603,29 +607,6 @@ static void ath9k_init_misc(struct ath9k_htc_priv *priv)
 	priv->ah->opmode = NL80211_IFTYPE_STATION;
 }
 
-static void ath9k_init_btcoex(struct ath9k_htc_priv *priv)
-{
-	int qnum;
-
-	switch (ath9k_hw_get_btcoex_scheme(priv->ah)) {
-	case ATH_BTCOEX_CFG_NONE:
-		break;
-	case ATH_BTCOEX_CFG_3WIRE:
-		priv->ah->btcoex_hw.btactive_gpio = 7;
-		priv->ah->btcoex_hw.btpriority_gpio = 6;
-		priv->ah->btcoex_hw.wlanactive_gpio = 8;
-		priv->btcoex.bt_stomp_type = ATH_BTCOEX_STOMP_LOW;
-		ath9k_hw_btcoex_init_3wire(priv->ah);
-		ath_htc_init_btcoex_work(priv);
-		qnum = priv->hwq_map[WME_AC_BE];
-		ath9k_hw_init_btcoex_hw(priv->ah, qnum);
-		break;
-	default:
-		WARN_ON(1);
-		break;
-	}
-}
-
 static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 			   u16 devid, char *product,
 			   u32 drv_info)
@@ -634,7 +615,7 @@ static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 	struct ath_common *common;
 	int i, ret = 0, csz = 0;
 
-	priv->op_flags |= OP_INVALID;
+	set_bit(OP_INVALID, &priv->op_flags);
 
 	ah = kzalloc(sizeof(struct ath_hw), GFP_KERNEL);
 	if (!ah)
@@ -658,6 +639,7 @@ static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 	common->hw = priv->hw;
 	common->priv = priv;
 	common->debug_mask = ath9k_debug;
+	common->btcoex_enabled = ath9k_htc_btcoex_enable == 1;
 
 	spin_lock_init(&priv->beacon_lock);
 	spin_lock_init(&priv->tx.tx_lock);
@@ -698,12 +680,7 @@ static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 	ath9k_cmn_init_crypto(ah);
 	ath9k_init_channels_rates(priv);
 	ath9k_init_misc(priv);
-
-	if (product && strncmp(product, ATH_HTC_BTCOEX_PRODUCT_ID, 5) == 0) {
-		ah->btcoex_hw.scheme = ATH_BTCOEX_CFG_3WIRE;
-		if (ath9k_hw_get_btcoex_scheme(ah) != ATH_BTCOEX_CFG_NONE)
-			ath9k_init_btcoex(priv);
-	}
+	ath9k_htc_init_btcoex(priv, product);
 
 	return 0;
 
@@ -716,6 +693,20 @@ err_hw:
 
 	return ret;
 }
+
+static const struct ieee80211_iface_limit if_limits[] = {
+	{ .max = 2,	.types = BIT(NL80211_IFTYPE_STATION) |
+				 BIT(NL80211_IFTYPE_P2P_CLIENT) },
+	{ .max = 2,	.types = BIT(NL80211_IFTYPE_AP) |
+				 BIT(NL80211_IFTYPE_P2P_GO) },
+};
+
+static const struct ieee80211_iface_combination if_comb = {
+	.limits = if_limits,
+	.n_limits = ARRAY_SIZE(if_limits),
+	.max_interfaces = 2,
+	.num_different_channels = 1,
+};
 
 static void ath9k_set_hw_capab(struct ath9k_htc_priv *priv,
 			       struct ieee80211_hw *hw)
@@ -739,11 +730,17 @@ static void ath9k_set_hw_capab(struct ath9k_htc_priv *priv,
 		BIT(NL80211_IFTYPE_P2P_GO) |
 		BIT(NL80211_IFTYPE_P2P_CLIENT);
 
+	hw->wiphy->iface_combinations = &if_comb;
+	hw->wiphy->n_iface_combinations = 1;
+
 	hw->wiphy->flags &= ~WIPHY_FLAG_PS_ON_BY_DEFAULT;
+
+	hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN |
+			    WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
 
 	hw->queues = 4;
 	hw->channel_change_time = 5000;
-	hw->max_listen_interval = 10;
+	hw->max_listen_interval = 1;
 
 	hw->vif_data_size = sizeof(struct ath9k_htc_vif);
 	hw->sta_data_size = sizeof(struct ath9k_htc_sta);
@@ -994,9 +991,7 @@ int ath9k_htc_resume(struct htc_target *htc_handle)
 static int __init ath9k_htc_init(void)
 {
 	if (ath9k_hif_usb_init() < 0) {
-		printk(KERN_ERR
-			"ath9k_htc: No USB devices found,"
-			" driver not installed.\n");
+		pr_err("No USB devices found, driver not installed\n");
 		return -ENODEV;
 	}
 
@@ -1007,6 +1002,6 @@ module_init(ath9k_htc_init);
 static void __exit ath9k_htc_exit(void)
 {
 	ath9k_hif_usb_exit();
-	printk(KERN_INFO "ath9k_htc: Driver unloaded\n");
+	pr_info("Driver unloaded\n");
 }
 module_exit(ath9k_htc_exit);
