@@ -9,3 +9,13 @@ What are we measuring? Throughput (packets/second?)
 
 samplerate returns a rate, and is passed (bitrate, ack_rcvd, TX_time)
 --is TX time RTT?
+
+
+How to store data?
+Dictionary keyed by rate?
+
+-broadcast has no link-layer acks. the broadcasts are use to measure the 'lossless tx rate'
+-"a 1500 byte broadcast packet at 11 megabits takes 1873 microseconds", so no ack
+
+-we are using 802.11g
+Future work: 802.11n
