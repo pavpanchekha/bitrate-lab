@@ -32,6 +32,6 @@ RATES = [
     BitRate("ht_ds", 39000, 36600, 10, 10),
 ]
 
-def ieee80211_to_idx(rate):
+def ieee80211_to_idx(mbps):
     return [i for i, rate in enumerate(RATES)
-            if rate.dot11_rate / 2 == rate]
+            if rate.dot11_rate / 2 == mbps]

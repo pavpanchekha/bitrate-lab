@@ -110,4 +110,5 @@ if __name__ == "__main__":
     time, fail = harness.run(len(data))
     if DEBUG: print()
     print("[summary] {} ns to send {} packets ({} failures)".format(time, len(data), fail))
-    print("Average packet took {:.3f} ms".format(time / len(data) / 1e6))
+    throughput = 1500 * 8 * len(data) / (time / 1e9) / 1e6
+    print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / len(data) / 1e6, throughput))
