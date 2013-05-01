@@ -42,7 +42,7 @@ class Harness:
         self.histogram = [0] * len(common.RATES)
 
     def send_packet(self):
-        rate_arr = self.choose_rate()
+        rate_arr = self.choose_rate(self.clock)
 
         if DEBUG:
             print("Sending packet at:", end=" ")
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     harness = Harness(data, module.apply_rate, module.process_feedback)
     time, fail = harness.run(len(data))
     if DEBUG: print()
-    print("[summary] {} ns to send {} packets ({} failures)".format(time, len(data), fail))
+    print("[summary] {} s to send {} packets ({} failures)".format(time / 1e9, len(data), fail))
     throughput = 1500 * 8 * len(data) / (time / 1e9) / 1e6
     print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / len(data) / 1e6, throughput))
 
