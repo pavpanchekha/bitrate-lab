@@ -1,5 +1,6 @@
 import numpy
 import time
+import common
 
 DEBUG = False
 
@@ -38,6 +39,8 @@ class Harness:
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
+        self.histogram = [0] * len(common.RATES)
+
     def send_packet(self):
         rate_arr = self.choose_rate()
 
@@ -60,9 +63,11 @@ class Harness:
             # If it would take more tries than we have
             if s_tries >= tries:
                 tot_tries.append((rate, tries))
+                self.histogram[rate] += tries
                 tot_delay += s_delay * (tries / s_tries)
             else: # We successfully transmit the packet
                 tot_tries.append((rate, s_tries))
+                self.histogram[rate] += s_tries
                 tot_delay += s_delay
                 tot_status = True # Success
                 break
@@ -112,3 +117,8 @@ if __name__ == "__main__":
     print("[summary] {} ns to send {} packets ({} failures)".format(time, len(data), fail))
     throughput = 1500 * 8 * len(data) / (time / 1e9) / 1e6
     print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / len(data) / 1e6, throughput))
+
+    for rate_idx, tries in enumerate(harness.histogram):
+        if not tries: continue
+        print("{: 2.1f} Mbps : {} tries".format(common.RATES[rate_idx][-1] / 2,
+                                                int(tries)))
