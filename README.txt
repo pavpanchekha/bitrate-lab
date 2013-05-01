@@ -2,10 +2,10 @@
 Data File Formats
 =================
 
-This folder contains captured bit rate success traces.
+The folders `raw` `data` contains captured bit rate success traces.
 
-Files `*.trace`
----------------
+Files `raw/*.trace`
+-------------------
 
 These are directly captured from the kernel; they have one record per line, such as:
 
@@ -20,10 +20,10 @@ There are six fields here:
  + The rate's kilobits per second
  + The rate's kilobits of payload per second; this elides the overhead of FEC and physical-layer headers.
  
-The last line of each file may be incomplete.  The records may also be muddled with concurrency errors and partial reads.  It is suggested that the `numpyify.py` script be used to transform these files before use.
+The last line of each file may be incomplete.  The records may also be muddled with concurrency errors and partial reads.  It is suggested that the `data/numpyify.py` script be used to transform these files before use.
 
-Files `*.npy`
--------------
+Files `data/*.npy`
+------------------
 
 These files are converted from the above into Numpy array dumps.  They're best read with:
 
