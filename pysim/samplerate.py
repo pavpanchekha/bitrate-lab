@@ -2,6 +2,8 @@
 # This file attempts to implement the SampleRate bit rate selection algorithm 
 # as outlined in the JBicket MS Thesis.
 
+import time
+
 #number of packets sent over link
 npkts = 0
 
@@ -19,6 +21,17 @@ def tx_time(bitrate, retries, nbytes):
     header = 20 #in microseconds, for 802.11 a/g bitrates
     return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/bitrate))
 
+class Packet:
+    def __init__(self, time_sent, success, rate):
+        self.time_sent = time_sent
+        self.success = success
+        self.rate = rate
+
+    def __repr__(self):
+        return ("Pkt sent at time %r, rate %r was successful: %r\n" 
+                % (self.time_sent, self.rate, self.success))
+    
+
 class Rate:
     def __init__(self, rate):
         self.rate = rate #in mbps
@@ -29,7 +42,20 @@ class Rate:
         self.avgTX = None
         #pktsize/channelrate. pktsize = 1500 bytes
         self.losslessTX = tx_time(rate, 0, 1500)
+        self.window = set([]) #packets rcvd in last 10s
 
+    def avg_tx(self):
+        # Only calculates the average transmission time over packets 
+        # that were sent within the last averaging window.
+        window_cuttoff = time.time() - 10
+        
+        self.totalTX = 0
+        for p in window:
+            if p.time_sent < window_cutoff:
+                self.remove(p)
+            else:
+                self.totalTX += #TODO
+            
     def __repr__(self):
         return ("Bitrate %r mbps: \n"
                 "  tries: %r \n"
@@ -64,8 +90,8 @@ def apply_rate():
     #Otherwise, send the packet at the bit-rate that has the lowest avg xmission time
 
 
-def process_feedback():
-    pass
+def process_feedback(bitrate, nretries, timestamp):
+    
 
 def remove_stale_results():
     pass
