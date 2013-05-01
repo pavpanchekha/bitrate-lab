@@ -16,6 +16,8 @@ RATES = [
     BitRate("ofdm", 36000, 23700, 9, 72),
     BitRate("ofdm", 48000, 27400, 10, 96),
     BitRate("ofdm", 54000, 30900, 11, 108),
+
+    # Ignored by some bit rate protocols
     BitRate("ht_ss", 6500, 6400, 0, 0),
     BitRate("ht_ss", 13000, 12700, 1, 1),
     BitRate("ht_ss", 19500, 18800, 2, 2),
@@ -29,3 +31,7 @@ RATES = [
     BitRate("ht_ds", 26000, 24800, 9, 9),
     BitRate("ht_ds", 39000, 36600, 10, 10),
 ]
+
+def ieee80211_to_idx(rate):
+    return [i for i, rate in enumerate(RATES)
+            if rate.dot11_rate / 2 == rate]
