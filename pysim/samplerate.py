@@ -4,10 +4,15 @@
 
 import time
 from random import choice 
+from common import ieee80211_to_idx
+import common
+import copy
+
 npkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
 NBYTES = 1500 #constant
-currRate = None #current best bitRate
+currRate = 54 #current best bitRate
+NRETRIES = 20
 
 # The average back-off period, in microseconds, for up to 8 attempts of a 802.11b unicast packet. 
 # TODO: find g data
@@ -19,6 +24,7 @@ backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5
 #number of retries r, SampleRate uses the following equation based on the 802.11 unicast
 # tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
 def tx_time(bitrate, retries, nbytes):
+    global currRate, npkts, nsuccess, NBYTES
     difs = 28 #DCF Interframe Space (DIFS), 28 microseconds in 802.11g
     sifs = 9 #Short Interframe Space (SIFS), 9 microseconds for 802.11g
     ack = 200 #in microseconds, for 6 megabit acknowledgements
@@ -35,7 +41,7 @@ class Packet:
     def __repr__(self):
         return ("Pkt sent at time %r, rate %r was successful: %r\n" 
                 % (self.time_sent, self.rate, self.success))
-    
+
 
 class Rate:
     def __init__(self, rate):
@@ -45,22 +51,11 @@ class Rate:
         self.pktAcked = 0
         self.succFails = 0
         self.totalTX = 0
-        self.avgTX = None
+        self.avgTX = float("inf")
         #pktsize/channelrate. pktsize = 1500 bytes
         self.losslessTX = tx_time(rate, 0, 1500)
-        self.window = set([]) #packets rcvd in last 10s
+        self.window = [] #packets rcvd in last 10s
 
-    def avg_tx(self):
-        # Only calculates the average transmission time over packets 
-        # that were sent within the last averaging window.
-        
-        self.totalTX = 0
-        for p in window:
-            if p.time_sent < window_cutoff:
-                self.remove(p)
-            else:
-                self.totalTX += #TODO
-            
     def __repr__(self):
         return ("Bitrate %r mbps: \n"
                 "  tries: %r \n"
@@ -81,85 +76,109 @@ class Rate:
 rates = {1:Rate(1), 2:Rate(2), 5.5:Rate(5.5), 6:Rate(6), 9:Rate(9), 11:Rate(11), 12:Rate(12), 18:Rate(18), 24:Rate(24), 36:Rate(36), 48:Rate(48), 54:Rate(54)}
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
-def apply_rate():
-    remove_stale_results()
+def apply_rate(cur_time):
+    global currRate, npkts, nsuccess, NBYTES, NRETRIES
+    remove_stale_results(cur_time)
     
     npkts += 1
     
     #If no packets have been successfully acknowledged, 
     #return the highest bit-rate that has not had 4 successive failures.
     if nsuccess == 0:
-        for r in reversed(rates.keys()):
-            if r.succFail < 4:
+        print("------------------------------------------------")
+        print("NSUCCESS == 0")
+        print("------------------------------------------------")
+        rrates = [r[1] for r in sorted(rates.items())]
+        rrates.reverse()
+        for r in rrates:
+            if r.succFails < 4:
                 currRate = r.rate
-                return r.rate
+                return [(ieee80211_to_idx(currRate)[0], NRETRIES)]
     
 
     #every 10 packets, select a random non-failing bit rate w/ better avg tx
     if (npkts != 0) and (npkts%10 == 0):
+        print("------------------------------------------------")
+        print("TRYING RANDOM RATE")
+        print("------------------------------------------------")
         cavgTX = rates[currRate].avgTX
         eligible = []
-        for r in rates.keys():
-            if r.avgTX < cavgTx and r.succFail < 4:
+        for r in rates.values():
+            if r.avgTX < cavgTX and r.succFail < 4:
                 eligible.append[r]
         if len(eligible) > 0:
-            curRate = choice(eligible) #select random rate from eligible
-        return curRate
+            currRate = choice(eligible) #select random rate from eligible
+    else:        
+        print("------------------------------------------------")
+        print("bizniz as usual")
+        print("------------------------------------------------")
+    #Otherwise, send packet at the bit-rate that has the lowest avg xmisscurion time
+    return [(ieee80211_to_idx(currRate)[0], NRETRIES)]#trusts that currRate is properly maintained to be lowest avgTX
 
-    #Otherwise, send packet at the bit-rate that has the lowest avg xmission time
-    return currRate #trusts that currRate is properly maintained to be lowest avgTX
 
+def process_feedback(status, timestamp, delay, tries):
+    global currRate, npkts, nsuccess, NBYTES
+    (bitrate, nretries) = tries[0]
+    nretries -= 1
+    bitrate = common.RATES[bitrate][-1]/2.0
 
-def process_feedback(bitrate, nretries, timestamp):
     tx = tx_time(bitrate, nretries, NBYTES)
+    #print tx
 
     br = rates[bitrate]
     br.totalTX += tx
 
     #we know a packet failed if it it 20 retries
-    if nretries >= 20:
+    if not status:
         br.succFails += 1
-        success = False
     else:
         br.success += 1
         br.succFails = 0
-        success = True 
         nsuccess += 1
 
     #caclulate average TX time
-    br.avgTX = br.totalTX/br.success
+    if br.success == 0:
+        br.avgTX = float("inf")
+    else: br.avgTX = br.totalTX/br.success
     
     #instantiate pkt object
-    p = Packet(timestamp, success, tx, bitrate)
+    p = Packet(timestamp, status, tx, bitrate)
 
     #add packet to window
-    br.window.add(p)
+    br.window.append(p)
 
     #set current rate to the one w/ min avg tx time
     calculateMin()
     
 
-def remove_stale_results():
-    window_cuttoff = time.time() - 10
+def remove_stale_results(cur_time):
+    window_cutoff = cur_time - 1e10 #window size of 10s
 
-    for r in rates.keys():
+    for r in rates.values():
+        print(r)
         for p in r.window:
             if p.time_sent < window_cutoff:
-                k.window.discard(p)
+                r.window.remove(p)
                 #remove this pkts contrib. to total TX
                 r.totalTX -= p.txTime
                 #decrement total number of successes for br
                 if p.success:
                     r.success -= 1
         #recalculate avgTX
-        r.avgTX = r.totalTX/r.succes
+        if r.success == 0:
+            r.avgTX = float("inf")
+        else: r.avgTX = r.totalTX/r.success
     
     calculateMin()
         
 
 def calculateMin():
+    global currRate, npkts, nsuccess, NBYTES
     #set current rate to the one w/ min avg tx time
     c = rates[currRate]
-    for r in rates.keys():
-        if c.avgTX > r.avgTX:
-            currRate = r.rate
+    eligible = []
+    for r in rates.values():
+        if r.succFail < 4:
+            eligible.append[(r, r.avgTX)]
+
+    min(e[1] for e in eligible)
