@@ -1,8 +1,9 @@
 import numpy
 import time
 import common
+import os, sys
 
-DEBUG = False
+DEBUG = "DEBUG" in os.environ
 
 def load_data(source):
     return numpy.load(source) / 1. # Convert to float
@@ -100,8 +101,6 @@ class Harness:
         return (self.clock, self.packet_num - n)
 
 if __name__ == "__main__":
-    import sys
-
     if len(sys.argv) > 2:
         alg = sys.argv[1]
         data_file = sys.argv[2]
