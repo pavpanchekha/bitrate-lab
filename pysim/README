@@ -21,3 +21,9 @@ Dictionary keyed by rate?
 Future work: 802.11n
 
 Retries vs. Failures
+
+If no packets have been successfully acknowledged, return the highest bit-rate that
+has not had 4 successive failures.
+
+question: what should approach be if we fail out at a high rate, but the lower rates have not been tried and thus have an infinite average TX?
+

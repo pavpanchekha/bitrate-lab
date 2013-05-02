@@ -178,9 +178,17 @@ def calculateMin():
     #set current rate to the one w/ min avg tx time
     c = rates[currRate]
     if c.succFails > 4:
+        c.avgTX = float("inf")
         c = rates[1]
 
-    for r in rates.values():
+    rrates = [r[1] for r in sorted(rates.items())]
+    rrates.reverse()
+    for r in rrates:
+        #we've never tried this rate thoroughly before
+        if r.avgTX == float("inf") and r.succFails < 4:
+            c = r
+            break
+        
         if c.avgTX > r.avgTX and r.succFails < 4:
             c = r
 
