@@ -85,9 +85,9 @@ def apply_rate(cur_time):
     #If no packets have been successfully acknowledged, 
     #return the highest bit-rate that has not had 4 successive failures.
     if nsuccess == 0:
-        print("------------------------------------------------")
-        print("NSUCCESS == 0")
-        print("------------------------------------------------")
+        #print("------------------------------------------------")
+        #print("NSUCCESS == 0")
+        #print("------------------------------------------------")
         rrates = [r[1] for r in sorted(rates.items())]
         rrates.reverse()
         for r in rrates:
@@ -98,21 +98,23 @@ def apply_rate(cur_time):
 
     #every 10 packets, select a random non-failing bit rate w/ better avg tx
     if (npkts != 0) and (npkts%10 == 0):
-        print("------------------------------------------------")
-        print("TRYING RANDOM RATE")
-        print("------------------------------------------------")
+        #print("------------------------------------------------")
+        #print("TRYING RANDOM RATE")
+        #print("------------------------------------------------")
         cavgTX = rates[currRate].avgTX
         eligible = []
         for r in rates.values():
-            if r.avgTX < cavgTX and r.succFail < 4:
-                eligible.append[r]
+            if r.losslessTX < cavgTX and r.succFails < 4:
+                eligible.append(r)
         if len(eligible) > 0:
-            currRate = choice(eligible) #select random rate from eligible
-    else:        
-        print("------------------------------------------------")
-        print("bizniz as usual")
-        print("------------------------------------------------")
+            currRate = choice(eligible).rate #select random rate from eligible
+    #else:        
+    #    print("------------------------------------------------")
+    #    print("bizniz as usual")
+    #    print("------------------------------------------------")
     #Otherwise, send packet at the bit-rate that has the lowest avg xmisscurion time
+    #print("cur rate is %r\n" % currRate)
+    #print(ieee80211_to_idx(currRate))
     return [(ieee80211_to_idx(currRate)[0], NRETRIES)]#trusts that currRate is properly maintained to be lowest avgTX
 
 
@@ -123,7 +125,6 @@ def process_feedback(status, timestamp, delay, tries):
     bitrate = common.RATES[bitrate][-1]/2.0
 
     tx = tx_time(bitrate, nretries, NBYTES)
-    #print tx
 
     br = rates[bitrate]
     br.totalTX += tx
@@ -155,7 +156,7 @@ def remove_stale_results(cur_time):
     window_cutoff = cur_time - 1e10 #window size of 10s
 
     for r in rates.values():
-        print(r)
+        #print(r)
         for p in r.window:
             if p.time_sent < window_cutoff:
                 r.window.remove(p)
@@ -176,9 +177,11 @@ def calculateMin():
     global currRate, npkts, nsuccess, NBYTES
     #set current rate to the one w/ min avg tx time
     c = rates[currRate]
-    eligible = []
-    for r in rates.values():
-        if r.succFail < 4:
-            eligible.append[(r, r.avgTX)]
+    if c.succFails > 4:
+        c = rates[1]
 
-    min(e[1] for e in eligible)
+    for r in rates.values():
+        if c.avgTX > r.avgTX and r.succFails < 4:
+            c = r
+
+    currRate = c.rate
