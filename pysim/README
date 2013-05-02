@@ -19,8 +19,16 @@ Dictionary keyed by rate?
 
 -we are using 802.11g
 Future work: 802.11n
+Samplerate w/ EWMA
+
+-samplerate worse than fixed rate?
 
 Retries vs. Failures
+--does the packet declare failure after 4 retries, or after 4 failures of any number of retries?
+
+Retry Chain?
+--not mentioned in thesis. was it just not used?
+idea: come up with a version that uses retry chain
 
 If no packets have been successfully acknowledged, return the highest bit-rate that
 has not had 4 successive failures.

@@ -179,16 +179,20 @@ def calculateMin():
     c = rates[currRate]
     if c.succFails > 4:
         c.avgTX = float("inf")
-        c = rates[1]
+        #c = rates[1]
 
     rrates = [r[1] for r in sorted(rates.items())]
     rrates.reverse()
     for r in rrates:
+        print("------------------------------------------------")
         #we've never tried this rate thoroughly before
-        if r.avgTX == float("inf") and r.succFails < 4:
+        if r.rate < c.rate and r.avgTX == float("inf") and r.succFails == 0 and r.losslessTX < c.avgTX:
+            print ("c = %r " % c)
+            print ("r = %r " %r)
+
             c = r
             break
-        
+        print("------------------------------------------------")
         if c.avgTX > r.avgTX and r.succFails < 4:
             c = r
 
