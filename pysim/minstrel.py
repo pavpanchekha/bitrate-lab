@@ -73,9 +73,9 @@ def apply_rate():
 def process_feedback():
     pass
 
-# thru = p_success * megabits_xmitted / time for 1 try of 1 pkt
-def throughput():
-    pass
+# thru = p_success * megabits_xmitted / time for 1 try of 1 pkt (in seconds?)
+def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
+    return psuccess*pktsize/rtt
 
 # The EWMA calculation is carried out 10 times a second, and is run for each rate. 
 # By "new results", we mean the results collected in the just completed 100 ms 
