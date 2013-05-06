@@ -114,11 +114,37 @@ def apply_rate(cur_time):
     #normal
     
     
-
-def process_feedback():
+#status: true if packet was rcvd successfully
+#timestamp: time pkt was sent
+#delay: rtt?
+#tries: an array of (bitrate, nretries) 
+def process_feedback(status, timestamp, delay, tries):
     global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
-    pass
+    for t in tries:
+        (bitrate, nretries) = t
+        nretries -= 1
+        bitrate = common.RATES[bitrate][-1]/2.0
+        
+        br = rates[bitrate]
+        br.tries = (br.tries + 1) % 10000
+        npkts = (npkts + 1) % 10000
+
+        #if the packet was successful...
+        if status:
+            br.success = (br.success + 1) % 10000
+            nsuccess = (nsuccess + 1) % 10000
+
+        #instantiate pkt object
+        p = Packet(timestamp, status, delay, bitrate)
+
+        #add packet to window
+        br.window.append(p)
+
+        #throughput, ewma_prob, this_prob, this_succ, this_attempt 
+        #all filled out during EWMA firing every 100ms?
+        #what do to about initial conditions (the first 100ms)?
+
 
 # thru = p_success * megabits_xmitted / time for 1 try of 1 pkt (in seconds?)
 def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):

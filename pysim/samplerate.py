@@ -117,6 +117,10 @@ def apply_rate(cur_time):
     return [(ieee80211_to_idx(currRate)[0], NRETRIES)]#trusts that currRate is properly maintained to be lowest avgTX
 
 
+#status: true if packet was rcvd successfully
+#timestamp: time pkt was sent
+#delay: rtt?
+#tries: an array of (bitrate, nretries) 
 def process_feedback(status, timestamp, delay, tries):
     global currRate, npkts, nsuccess, NBYTES
     (bitrate, nretries) = tries[0]
