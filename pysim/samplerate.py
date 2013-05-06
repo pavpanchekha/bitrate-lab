@@ -2,13 +2,11 @@
 # This file attempts to implement the SampleRate bit rate selection algorithm 
 # as outlined in the JBicket MS Thesis.
 
-import time
 from random import choice 
 from common import ieee80211_to_idx
 import common
-import copy
 
-npkts = 0 #number of packets sent over link
+dnpkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
 NBYTES = 1500 #constant
 currRate = 54 #current best bitRate
@@ -23,13 +21,14 @@ backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5
 #To calculate the transmission time of a n-byte unicast packet given the bit-rate b and
 #number of retries r, SampleRate uses the following equation based on the 802.11 unicast
 # tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
+# bitrate in MBPS, since 1*10^6 bps / 10-6 seconds/microseconds = 1 bit per microsecond
 def tx_time(bitrate, retries, nbytes):
     global currRate, npkts, nsuccess, NBYTES
     difs = 28 #DCF Interframe Space (DIFS), 28 microseconds in 802.11g
     sifs = 9 #Short Interframe Space (SIFS), 9 microseconds for 802.11g
     ack = 200 #in microseconds, for 6 megabit acknowledgements
     header = 20 #in microseconds, for 802.11 a/g bitrates
-    return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/bitrate))
+    return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/(bitrate))
 
 class Packet:
     def __init__(self, time_sent, success, txTime, rate):
@@ -73,7 +72,7 @@ class Rate:
 # to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.
 # Even though 802.11g operates in the same frequency band as 802.11b, it can achieve higher 
 # data rates because of its heritage to 802.11a.
-rates = {1:Rate(1), 2:Rate(2), 5.5:Rate(5.5), 6:Rate(6), 9:Rate(9), 11:Rate(11), 12:Rate(12), 18:Rate(18), 24:Rate(24), 36:Rate(36), 48:Rate(48), 54:Rate(54)}
+rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):

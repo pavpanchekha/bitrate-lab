@@ -3,11 +3,9 @@
 # It uses retry chain for the initial send, and seems to get a slightly higher throughput
 # interestingly, adding retry chains for normal sends seems to decrease throughput
 
-import time
 from random import choice 
 from common import ieee80211_to_idx
 import common
-import copy
 
 npkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
@@ -74,9 +72,10 @@ class Rate:
 # to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.
 # Even though 802.11g operates in the same frequency band as 802.11b, it can achieve higher 
 # data rates because of its heritage to 802.11a.
-rates = {1:Rate(1), 2:Rate(2), 5.5:Rate(5.5), 6:Rate(6), 9:Rate(9), 11:Rate(11), 12:Rate(12), 18:Rate(18), 24:Rate(24), 36:Rate(36), 48:Rate(48), 54:Rate(54)}
+rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
+#cur_time is in nanoseconds
 def apply_rate(cur_time):
     global currRate, npkts, nsuccess, NBYTES, NRETRIES
     remove_stale_results(cur_time)
