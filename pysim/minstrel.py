@@ -225,7 +225,21 @@ def update_stats(timestamp):
         p = br.success / br.tries
         br.succ_hist += br.success
         br.att_hist += br.tries
-        rate.ewma.feed(timestamp, p)
+        br.ewma.feed(timestamp, p)
+        p = br.ewma.read()
+
+        if p > 0.95 or p < .1:
+            br.adjusted_retry_count = br.retry_count >> 1
+            if br.adjusted_retry_count > 2:
+                br.adjusted_retry_count = 2
+            br.sample_limit = 4
+        else:
+            br.sample_limit = -1
+            br.adjusted_retry_count = br.retry_count
+
+        if br.adjusted_retry_count == 0:
+            br.adjusted_retry_count = 2
+        
         br.success = 0
         br.tries = 0
     self.last_update = timestamp
