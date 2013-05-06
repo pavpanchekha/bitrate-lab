@@ -152,22 +152,29 @@ def apply_rate(cur_time):
 
         if random < bestThruput:
             return [(ieee80211_to_idx(bestThruput)[0],
-                     rates(bestThruput).adjusted_retry_count),
+                     rates[bestThruput].adjusted_retry_count),
                     (ieee80211_to_idx(random)[0],
-                     rates(random).adjusted_retry_count), 
+                     rates[random].adjusted_retry_count), 
                     (ieee80211_to_idx(bestProb)[0],
-                     rates(bestProb).adjusted_retry_count), 
+                     rates[bestProb].adjusted_retry_count), 
                     (ieee80211_to_idx(lowestBase)[0],
-                     rates(lowestBase).adjusted_retry_count)]
+                     rates[lowestBase].adjusted_retry_count)]
         else:
+            
+            #TODO: understand the corresponding kernel code more 
+            #and implement if (if necessary)
+            if rates[random].sample_limit != 0:
+                if rates[random].sample_limit > 0:
+                    rates[random].sample_limit -= 1;:
+            
             return [(ieee80211_to_idx(random)[0],
-                      rates(random).adjusted_retry_count), 
+                      rates[random].adjusted_retry_count), 
                     (ieee80211_to_idx(bestThruput)[0],
-                     rates(bestThruput).adjusted_retry_count),
+                     rates[bestThruput].adjusted_retry_count),
                     (ieee80211_to_idx(bestProb)[0],
-                     rates(bestProb).adjusted_retry_count), 
+                     rates[bestProb].adjusted_retry_count), 
                     (ieee80211_to_idx(lowestBase)[0],
-                     rates(lowestBase).adjusted_retry_count)]
+                     rates[lowestBase].adjusted_retry_count)]
         
     #normal
     return [(ieee80211_to_idx(bestThruput)[0],
