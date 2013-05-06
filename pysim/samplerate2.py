@@ -128,6 +128,10 @@ def apply_rate(cur_time):
 
 
 
+#status: true if packet was rcvd successfully
+#timestamp: time pkt was sent
+#delay: rtt for entire process (inluding multiple tries) in nanoseconds
+#tries: an array of (bitrate, nretries) 
 def process_feedback(status, timestamp, delay, tries):
     global currRate, npkts, nsuccess, NBYTES
     for t in tries:

@@ -52,7 +52,7 @@ class Rate:
         self.totalTX = 0
         self.avgTX = float("inf")
         #pktsize/channelrate. pktsize = 1500 bytes
-        self.losslessTX = tx_time(rate, 0, 1500)
+        self.losslessTX = tx_time(rate, 0, 1500) #microseconds
         self.window = [] #packets rcvd in last 10s
 
     def __repr__(self):
@@ -119,7 +119,7 @@ def apply_rate(cur_time):
 
 #status: true if packet was rcvd successfully
 #timestamp: time pkt was sent
-#delay: rtt?
+#delay: rtt for entire process (inluding multiple tries) in nanoseconds
 #tries: an array of (bitrate, nretries) 
 def process_feedback(status, timestamp, delay, tries):
     global currRate, npkts, nsuccess, NBYTES

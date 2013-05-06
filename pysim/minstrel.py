@@ -2,6 +2,7 @@
 # This file attempts to implement the minstrel rate control algorithm
 
 from random import randint
+from random import choice 
 import common
 
 npkts = 0 #number of packets sent over link
@@ -15,12 +16,26 @@ nextThruput = 48
 bestProb = 1
 lowestRate = 1
 time_last_called = 0
+cw_min = 15
+cw_max = 1023
+segment_size = 6000
 
 # The average back-off period, in milliseconds, for up to 8 attempts of a 802.11b unicast packet. 
 # TODO: find g data
 backoff = {0:0, 1:.155, 2:.315, 3:.635, 4:1.275, 5:2.555, 6:5.115, 7:5.115, 8:5.115, 9:5.115,
            10:5.115, 11:5.115, 12:5.115, 13:5.115, 14:5.115, 15:5.115, 16:5.115, 17:5.115,
            18:5.115, 19:5.115, 20:5.115}
+
+#To calculate the transmission time of a n-byte unicast packet given the bit-rate b and
+#number of retries r, SampleRate uses the following equation based on the 802.11 unicast
+# tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
+def tx_time(bitrate, retries, nbytes):
+    global currRate, npkts, nsuccess, NBYTES
+    difs = 28 #DCF Interframe Space (DIFS), 28 microseconds in 802.11g
+    sifs = 9 #Short Interframe Space (SIFS), 9 microseconds for 802.11g
+    ack = 200 #in microseconds, for 6 megabit acknowledgements
+    header = 20 #in microseconds, for 802.11 a/g bitrates
+    return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/bitrate))
 
 
 class Packet:
@@ -52,8 +67,29 @@ class Rate:
         self.this_succ = 0
         self.this_attempt = 0
         #pktsize/channelrate. pktsize = 1500 bytes
-        self.losslessTX = tx_time(rate, 0, 1500)
+        self.losslessTX = tx_time(rate, 0, 1500) #microseconds
         self.window = [] #packets rcvd in last 10s
+
+        #what is the difference between these?
+        self.sample_limit = -1
+        self.retry_count = 1
+
+        tx_time = self.losslessTX #includes ack
+        condition = True
+        while condition:
+            #add one retransmission
+            tx_time_single = 200 + self.losslessTX
+
+            #contention window
+            tx_time_single += (9* cw) >> 1;
+            cw = min((cw << 1) | 1, cw_max)
+            
+            tx_time += tx_time_single
+
+            condition = (tx_time < segment_size) and (self.retry_count + 1 < 
+                                                      max_retry)
+        
+        self.adjusted_retry_count = self.retry_count
 
     def __repr__(self):
         return ("Bitrate %r mbps: \n"
@@ -105,18 +141,47 @@ def apply_rate(cur_time):
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
     if randint(1,100) <= 10:
-        #Analysis of information showed that the system was sampling too hard at some rates. 
-        #For those rates that never work (54mb, 500m range) there is no point in sending 
-        #10 sample packets (< 6 ms time). Consequently, for the very very low probability rates, 
-        #we sample at most twice.
-        pass
-    
+        #Analysis of information showed that the system was sampling too hard
+        #at some rates. For those rates that never work (54mb, 500m range) 
+        #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 
+        #for the very very low probability rates, we sample at most twice.
+
+        random = choice(rates.values()).rate
+        while(random == 1): #never sample at lowest rate
+            random = choice(rates.values()).rate
+
+        if random < bestThruput:
+            return [(ieee80211_to_idx(bestThruput)[0],
+                     rates(bestThruput).adjusted_retry_count),
+                    (ieee80211_to_idx(random)[0],
+                     rates(random).adjusted_retry_count), 
+                    (ieee80211_to_idx(bestProb)[0],
+                     rates(bestProb).adjusted_retry_count), 
+                    (ieee80211_to_idx(lowestBase)[0],
+                     rates(lowestBase).adjusted_retry_count)]
+        else:
+            return [(ieee80211_to_idx(random)[0],
+                      rates(random).adjusted_retry_count), 
+                    (ieee80211_to_idx(bestThruput)[0],
+                     rates(bestThruput).adjusted_retry_count),
+                    (ieee80211_to_idx(bestProb)[0],
+                     rates(bestProb).adjusted_retry_count), 
+                    (ieee80211_to_idx(lowestBase)[0],
+                     rates(lowestBase).adjusted_retry_count)]
+        
     #normal
-    
+    return [(ieee80211_to_idx(bestThruput)[0],
+             rates(bestThruput).adjusted_retry_count), 
+            (ieee80211_to_idx(nextThruput)[0],
+             rates(nextThruput).adjusted_retry_count), 
+            (ieee80211_to_idx(bestProb)[0],
+             rates(bestProb).adjusted_retry_count), 
+            (ieee80211_to_idx(lowestRate)[0],
+             rates(lowestRate).adjusted_retry_count)]
     
 #status: true if packet was rcvd successfully
 #timestamp: time pkt was sent
-#delay: rtt?
+#delay: rtt for entire process (inluding multiple tries) in nanoseconds
 #tries: an array of (bitrate, nretries) 
 def process_feedback(status, timestamp, delay, tries):
     global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
