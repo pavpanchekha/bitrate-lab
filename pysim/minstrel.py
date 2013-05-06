@@ -53,14 +53,14 @@ class Packet:
 class Rate:
     def __init__(self, rate):
         self.rate = rate #in mbps
+        self.throughput = 0
+
+        self.last_update = 0.0
+        self.ewma = common.EWMA(0.0, 100e6, 0.75) # 100 ms
         self.success = 0
         self.tries = 0
-        self.throughput = 0
-        self.ewma_prob = 0 #current time weighted chance that pkt @ will arrive
-        #success chance from the last time interval in which minstrel recorded data
-        #Should there be no data, then the figure from the earlier time interval
-        #(containing data) is used
-        self.this_prob = 0 
+        self.succ_hist = 0
+        self.att_hist = 0
 
         #This succ/attempt reports how many packets were sent 
         #(and number of successes) in the last time interval.
@@ -123,7 +123,7 @@ def apply_rate(cur_time):
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
 
     if cur_time - time_last_called >= 1e8:
-        ewma() #etc, etc.
+        update_stats()
     time_last_called = cur_time
 
 
@@ -210,6 +210,18 @@ def process_feedback(status, timestamp, delay, tries):
         #all filled out during EWMA firing every 100ms?
         #what do to about initial conditions (the first 100ms)?
 
+        if timestamp - time_last_called >= 1e8:
+            self.update_stats()
+
+def update_stats(timestamp):
+    for i, br in rates.items():
+        p = br.success / br.tries
+        br.succ_hist += br.success
+        br.att_hist += br.tries
+        rate.ewma.feed(timestamp, p)
+        br.success = 0
+        br.tries = 0
+    self.last_update = timestamp
 
 # thru = p_success * megabits_xmitted / time for 1 try of 1 pkt (in seconds?)
 def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
@@ -217,11 +229,3 @@ def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
     
     return psuccess*pktsize/rtt
-
-# The EWMA calculation is carried out 10 times a second, and is run for each rate. 
-# By "new results", we mean the results collected in the just completed 100 ms 
-# interval. Old results are the EWMA scaling values from before the just completed 
-# 100 ms interval.
-def ewma():
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
-    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called

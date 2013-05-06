@@ -113,11 +113,12 @@ if __name__ == "__main__":
     harness = Harness(data, module.apply_rate, module.process_feedback)
     time, fail = harness.run(len(data))
     if DEBUG: print()
-    print("[summary] {} s to send {} packets ({} failures)".format(time / 1e9, len(data), fail))
+    print("[summary] {:.2f} s to send {} packets ({} failures)".format(time / 1e9, len(data), fail))
     throughput = 1500 * 8 * len(data) / (time / 1e9) / 1e6
     print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / len(data) / 1e6, throughput))
 
     for rate_idx, tries in enumerate(harness.histogram):
         if not tries: continue
-        print("{: 2.1f} Mbps : {} tries".format(common.RATES[rate_idx][-1] / 2,
-                                                int(tries)))
+        mbps = common.RATES[rate_idx][-1] / 2
+        print("{} Mbps : {} tries".format(str(mbps).rjust(5),
+                                          str(int(tries)).rjust(4)))

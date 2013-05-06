@@ -1,4 +1,5 @@
 import collections
+import math
 
 BitRate = collections.namedtuple("BitRate", ["phy", "kbps", "user_kbps",
                                              "code", "dot11_rate"])
@@ -35,3 +36,22 @@ RATES = [
 def ieee80211_to_idx(mbps):
     return [i for i, rate in enumerate(RATES)
             if rate.dot11_rate / 2 == mbps]
+
+
+class EWMA:
+    def __init__(self, time, time_step, pval):
+        self.p = pval
+        self.time = time
+        self.step = time_step
+        self.val = 0.0
+
+    def feed(self, time, val):
+        steps = math.floor((time - self.time) / self.step)
+        p = self.p ** steps
+        newval = self.val * p + val * (1 - p)
+
+        self.val = newval
+        self.time = time
+
+    def read(self):
+        return self.val
