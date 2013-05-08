@@ -282,10 +282,10 @@ def update_stats(timestamp):
     rates_ = sorted(rates.values(), key=lambda br: br.throughput, reverse=True)
     bestThruput = rates_[0].rate
 
-    print("[")
+    print("(rate, throughput, probability)")
     for r in rates_:
         print("(%r, %r bps, p = %r)"%(r.rate, r.throughput, round(r.ewma.read()/18000.0, 3))) 
-    print("]")
+    print()
 
     print("best_thruput = ", bestThruput)
     nextThruput = rates_[0].rate
