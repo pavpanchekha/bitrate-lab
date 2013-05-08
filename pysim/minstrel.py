@@ -96,7 +96,8 @@ class Rate:
 
         self.throughput = 0 #in bits per second
         self.last_update = 0.0 
-        self.ewma = common.EWMA(0.0, 100e6, 0.75) # 100 ms
+        #ewma obj. can return probability of success. if you ask nicely.
+        self.ewma = common.EWMA(0.0, 100e6, 0.75) #100e6 = 100 ms,
         self.succ_hist = 0 #number of successful xmission in previous update interval
         self.att_hist = 0 #number of xmission attempts in previous update interval
         self.success = 0  #number of successful xmissions in cur time interval
