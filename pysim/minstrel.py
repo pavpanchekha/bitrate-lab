@@ -25,18 +25,52 @@ segment_size = 6000
 backoff = {0:0, 1:.155, 2:.315, 3:.635, 4:1.275, 5:2.555, 6:5.115, 7:5.115, 8:5.115, 9:5.115,
            10:5.115, 11:5.115, 12:5.115, 13:5.115, 14:5.115, 15:5.115, 16:5.115, 17:5.115,
            18:5.115, 19:5.115, 20:5.115}
+#1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+odfm = set([6, 9, 12, 18, 24, 36, 48, 54])
 
-#To calculate the transmission time of a n-byte unicast packet given the bit-rate b and
-#number of retries r, SampleRate uses the following equation based on the 802.11 unicast
-# tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
-def tx_time(bitrate, retries, nbytes):
-    global currRate, npkts, nsuccess, NBYTES
-    difs = 28 #DCF Interframe Space (DIFS), 28 microseconds in 802.11g
-    sifs = 9 #Short Interframe Space (SIFS), 9 microseconds for 802.11g
-    ack = 200 #in microseconds, for 6 megabit acknowledgements
-    header = 20 #in microseconds, for 802.11 a/g bitrates
-    return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/bitrate))
+'''
+/* calculate duration (in microseconds, rounded up to next higher
+* integer if it includes a fractional microsecond) to send frame of
+* len bytes (does not include FCS) at the given rate. Duration will
+* also include SIFS.
+*
+* rate is in 1000 kbps (1Mbps)
+*/'''
+def tx_time(length, rate):
+    if rates[rate].odfm:
+        '''* OFDM:
+        *
+        * N_DBPS = DATARATE x 4
+        * N_SYM = Ceiling((16+8xLENGTH+6) / N_DBPS)
+        *	(16 = SIGNAL time, 6 = tail bits)
+        * TXTIME = T_PREAMBLE + T_SIGNAL + T_SYM x N_SYM + Signal Ext
+        *
+        * T_SYM = 4 usec
+        * 802.11a - 17.5.2: aSIFSTime = 16 usec
+        * 802.11g - 19.8.4: aSIFSTime = 10 usec +
+        *	signal ext = 6 usec
+        */'''
+        dur = 16 # SIFS + signal ext */
+        dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
+        dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
+        dur += 4 * ((16+8*(length+4)+6) + (4*rate-1)/(4*rate)) # T_SYM x N_SYM 
 
+    else:
+        '''
+        * 802.11b or 802.11g with 802.11b compatibility:
+        * 18.3.4: TXTIME = PreambleLength + PLCPHeaderTime +
+        * Ceiling(((LENGTH+PBCC)x8)/DATARATE). PBCC=0.
+        *
+        * 802.11 (DS): 15.3.3, 802.11b: 18.3.4
+        * aSIFSTime = 10 usec
+        * aPreambleLength = 144 usec or 72 usec with short preamble
+        * aPLCPHeaderLength = 48 usec or 24 usec with short preamble
+        *'''
+        dur = 10 # aSIFSTime = 10 usec 
+        dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
+        dur += ((8*(length + 4))+(rate-1))/rate
+    
+    return dur
 
 class Packet:
     def __init__(self, time_sent, success, txTime, rate):
@@ -51,34 +85,36 @@ class Packet:
 
 
 class Rate:
+    #OFDM = g
     def __init__(self, rate):
         self.rate = rate #in mbps
-        self.throughput = 0
 
-        self.last_update = 0.0
+        #if we are an 802.11g rate...
+        if rate in odfm:
+            self.odfm == True
+        else: self.odfm = False
+
+        self.throughput = 0 #in bits per second
+        self.last_update = 0.0 
         self.ewma = common.EWMA(0.0, 100e6, 0.75) # 100 ms
-        self.success = 0
-        self.tries = 0
-        self.succ_hist = 0
-        self.att_hist = 0
-
-        #This succ/attempt reports how many packets were sent 
-        #(and number of successes) in the last time interval.
-        self.this_succ = 0
-        self.this_attempt = 0
-        #pktsize/channelrate. pktsize = 1500 bytes
-        self.losslessTX = tx_time(rate, 0, 1500) #microseconds
+        self.succ_hist = 0 #number of successful xmission in previous update interval
+        self.att_hist = 0 #number of xmission attempts in previous update interval
+        self.success = 0  #number of successful xmissions in cur time interval
+        self.attempts = 0 #number of attempted transmissions in cur time interval
+        self.losslessTX = tx_time(rate, 1200) #microseconds, pktsize 1200 in kernel,
+                self.ack = tx_time(rate, 10) #microseconds, assumes 1mbps ack rate
         self.window = [] #packets rcvd in last 10s
 
         #what is the difference between these?
         self.sample_limit = -1
         self.retry_count = 1
 
+        #a complicated loop to calculate the initial adjusted retry count
         tx_time_ = self.losslessTX #includes ack
         condition = True
         while condition:
             #add one retransmission
-            tx_time_single = 200 + self.losslessTX
+            tx_time_single = self.ack + self.losslessTX
 
             #contention window
             tx_time_single += (9* cw) >> 1;
@@ -88,18 +124,17 @@ class Rate:
 
             condition = (tx_time_ < segment_size) and (self.retry_count + 1 < 
                                                       max_retry)
-        
-        self.adjusted_retry_count = self.retry_count
+        self.adjusted_retry_count = self.retry_count #Max retrans. used for probing
 
     def __repr__(self):
         return ("Bitrate %r mbps: \n"
-                "  tries: %r \n"
+                "  attempts: %r \n"
                 "  pktsAcked: %r \n"
                 "  succFails: %r \n"
                 "  totalTX: %r microseconds \n"
                 "  avgTx: %r microseconds \n"
                 "  losslessTX: %r microseconds"
-                % (self.rate, self.tries, self.success, self.succFails, 
+                % (self.rate, self.attempts, self.success, self.succFails, 
                    self.totalTX, self.avgTX, self.losslessTX))
 
 # The modulation scheme used in 802.11g is orthogonal frequency-division multiplexing (OFDM)
@@ -199,7 +234,7 @@ def process_feedback(status, timestamp, delay, tries):
         bitrate = common.RATES[bitrate][-1]/2.0
         
         br = rates[bitrate]
-        br.tries = (br.tries + 1) % 10000
+        br.tries = (br.attempts + 1) % 10000
         npkts = (npkts + 1) % 10000
 
         #if the packet was successful...
@@ -224,9 +259,9 @@ def update_stats(timestamp):
     global bestThruput, nextThruput, bestProb
 
     for i, br in rates.items():
-        p = br.success * 18000 // br.tries
+        p = br.success * 18000 // br.attempts
         br.succ_hist += br.success
-        br.att_hist += br.tries
+        br.att_hist += br.attempts
         br.ewma.feed(timestamp, p)
         p = br.ewma.read()
 
@@ -243,7 +278,7 @@ def update_stats(timestamp):
             br.adjusted_retry_count = 2
         
         br.success = 0
-        br.tries = 0
+        br.attempts = 0
         br.throughput = throughput(p / 18000, br.losslessTX)
 
     self.last_update = timestamp
@@ -253,6 +288,6 @@ def update_stats(timestamp):
     nextThruput = rates[0]
     bestProb = max(rates, key=lambda br: br.ewma.read(), reverse=True)
 
-# thru = p_success * megabits_xmitted / time for 1 try of 1 pkt (in seconds?)
+# thru = p_success [0, 18000] / lossless xmit time in ms
 def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
-    return psuccess*pktsize/rtt
+    return psuccess/(1e6/rtt)
