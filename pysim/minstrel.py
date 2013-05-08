@@ -249,7 +249,7 @@ def process_feedback(status, timestamp, delay, tries):
             self.update_stats()
 
 def update_stats(timestamp):
-    print("update stats")
+    print("---------------------------------")
     global bestThruput, nextThruput, bestProb, rates
 
     for i, br in rates.items():
@@ -281,9 +281,19 @@ def update_stats(timestamp):
     #changed rates to rates_, changed rates to rates.values() -CJ
     rates_ = sorted(rates.values(), key=lambda br: br.throughput, reverse=True)
     bestThruput = rates_[0].rate
+
+    print("[")
+    for r in rates_:
+        print("(%r, %r bps, p = %r)"%(r.rate, r.throughput, round(r.ewma.read()/18000.0, 3))) 
+    print("]")
+
     print("best_thruput = ", bestThruput)
     nextThruput = rates_[0].rate
-    bestProb = max(rates.values(), key=lambda br: br.ewma.read()).rate#, reverse=True) -CJ
+    #probably should be best prob that's not 1mbps, since othwerwise it would be
+    # redundant to lowest base rate in retry chain
+    rates_.remove(rates[1])
+    bestProb = max(rates_, key=lambda br: br.ewma.read()).rate#, reverse=True) -CJ
+    print("best_prob = ", bestProb)
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
 def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
