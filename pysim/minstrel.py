@@ -74,7 +74,7 @@ class Rate:
         self.sample_limit = -1
         self.retry_count = 1
 
-        tx_time = self.losslessTX #includes ack
+        tx_time_ = self.losslessTX #includes ack
         condition = True
         while condition:
             #add one retransmission
@@ -84,9 +84,9 @@ class Rate:
             tx_time_single += (9* cw) >> 1;
             cw = min((cw << 1) | 1, cw_max)
             
-            tx_time += tx_time_single
+            tx_time_ += tx_time_single
 
-            condition = (tx_time < segment_size) and (self.retry_count + 1 < 
+            condition = (tx_time_ < segment_size) and (self.retry_count + 1 < 
                                                       max_retry)
         
         self.adjusted_retry_count = self.retry_count
@@ -165,7 +165,7 @@ def apply_rate(cur_time):
             #and implement if (if necessary)
             if rates[random].sample_limit != 0:
                 if rates[random].sample_limit > 0:
-                    rates[random].sample_limit -= 1;:
+                    rates[random].sample_limit -= 1
             
             return [(ieee80211_to_idx(random)[0],
                       rates[random].adjusted_retry_count), 
@@ -221,14 +221,16 @@ def process_feedback(status, timestamp, delay, tries):
             self.update_stats()
 
 def update_stats(timestamp):
+    global bestThruput, nextThruput, bestProb
+
     for i, br in rates.items():
-        p = br.success / br.tries
+        p = br.success * 18000 // br.tries
         br.succ_hist += br.success
         br.att_hist += br.tries
         br.ewma.feed(timestamp, p)
         p = br.ewma.read()
 
-        if p > 0.95 or p < .1:
+        if p > 17100 or p < 1800:
             br.adjusted_retry_count = br.retry_count >> 1
             if br.adjusted_retry_count > 2:
                 br.adjusted_retry_count = 2
@@ -242,11 +244,15 @@ def update_stats(timestamp):
         
         br.success = 0
         br.tries = 0
+        br.throughput = throughput(p / 18000, br.losslessTX)
+
     self.last_update = timestamp
+
+    rates = sorted(rates, key=lambda br: br.throughput, reverse=True)
+    bestThruput = rates[0]
+    nextThruput = rates[0]
+    bestProb = max(rates, key=lambda br: br.ewma.read(), reverse=True)
 
 # thru = p_success * megabits_xmitted / time for 1 try of 1 pkt (in seconds?)
 def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
-    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
-    
     return psuccess*pktsize/rtt
