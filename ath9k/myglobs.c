@@ -4,6 +4,23 @@
 #include "myglobs.h"
 #include "ath9k.h"
 
+struct mutex ath_myglobs_mutex;
+
+char ath_stats_buffer[8192][64];
+int ath_stats_buffer_idx;
+
+struct ath_rate_table *ath_current_rate_table = 0;
+struct ieee80211_tx_info *ath_current_tx_info = 0;
+
+struct timespec ath_packet_send_start = { 0 };
+struct timespec ath_packet_send_end = { 0 };
+struct timespec ath_packet_send_id = { 0 };
+unsigned long ath_packet_send_diff = 0;
+u8 ath_packet_send_rate = 0;
+u8 ath_packet_send_retries = 0;
+
+static u8 ath_rotating_rix = 0;
+
 void ath_myglobs_init() {
   ath_stats_buffer_idx = 0;
   mutex_init(&ath_myglobs_mutex);
@@ -16,10 +33,6 @@ void ath_myglobs_lock() {
 void ath_myglobs_unlock() {
   mutex_unlock(&ath_myglobs_mutex);
 }
-
-
-struct ath_rate_table *ath_current_rate_table = 0;
-struct ieee80211_tx_info *ath_current_tx_info = 0;
 
 struct ath_rate_table *ath_get_current_rate_table() {
   return ath_current_rate_table;
@@ -36,13 +49,6 @@ struct ieee80211_tx_info *ath_get_current_tx_info() {
 void ath_set_current_tx_info(struct ieee80211_tx_info *tx_info) {
   ath_current_tx_info = tx_info;
 }
-
-struct timespec ath_packet_send_start = { 0 };
-struct timespec ath_packet_send_end = { 0 };
-struct timespec ath_packet_send_id = { 0 };
-unsigned long ath_packet_send_diff = 0;
-u8 ath_packet_send_rate = 0;
-u8 ath_packet_send_retries = 0;
 
 void ath_set_on_send() {
   ath_myglobs_lock();
@@ -85,8 +91,6 @@ u8 ath_get_send_rate() {
   return ath_packet_send_rate;
 }
 
-static u8 ath_rotating_rix = 0;
-
 void ath_inc_rotating_rix() {
   if (ath_rotating_rix < 12) {
     ath_rotating_rix++;
@@ -122,8 +126,10 @@ int ath_stats_to_str(char *buffer, size_t buffer_length) {
 
 void ath_set_buffer() {
   ath_myglobs_lock();
-  ath_stats_to_str(&(ath_stats_buffer[ath_stats_buffer_idx]), 90);
-  ath_stats_buffer_idx++;
+  if (ath_stats_buffer_idx < sizeof(ath_stats_buffer) / sizeof(ath_stats_buffer[0])) {
+    ath_stats_to_str(ath_stats_buffer[ath_stats_buffer_idx], 64);
+    ath_stats_buffer_idx++;
+  }
   ath_myglobs_unlock();
 }
 
