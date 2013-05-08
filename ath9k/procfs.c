@@ -26,37 +26,9 @@ ath_procfile_read(char *buffer,
 	ret = snprintf(buffer, buffer_length, "No rate known at this time.\n");
     } else {
 	ret = 0;
-	for (; i < IEEE80211_TX_MAX_RATES; i++) {
-	    rate = info->control.rates[i];
-	    if (rate.idx < 0) {
-		break;
-	    }
-	    ret += snprintf(buffer + ret, buffer_length - ret,
-			    "Rate %d at %d(%d) kbps: %d tries.\n",
-			    rate.idx,
-			    table->info[rate.idx].ratekbps,
-			    table->info[rate.idx].user_ratekbps,
-			    rate.count);
-            if (ret >= buffer_length) {
-              buffer[buffer_length] = '\0';
-              break;
-            }
-	}
-
-        i  = ath_get_send_rate();
-
-        ret += snprintf(buffer + ret, buffer_length - ret,
-                        "Last(%lu) took %lu ns / %d tries with rate %d at %d(%d) kbps\n",
-                        ath_get_send_id(),
-                        ath_get_send_diff(),
-                        ath_get_send_tries(),
-                        i,
-                        table->info[i].ratekbps,
-                        table->info[i].user_ratekbps);
-        if (ret >= buffer_length) {
-            buffer[buffer_length] = '\0';
-        }
     }
+
+    ret = ath_get_buffer(buffer, buffer_length);
 
     return ret;
 }

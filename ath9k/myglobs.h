@@ -1,6 +1,12 @@
 /* Some stuff for 6.829 */
 
+#include <linux/interrupt.h>
 #include "rc.h"
+
+struct mutex ath_myglobs_mutex;
+void ath_myglobs_init(void);
+void ath_myglobs_lock(void);
+void ath_myglobs_unlock(void);
 
 struct ath_rate_table *ath_get_current_rate_table(void);
 void ath_set_current_rate_table(struct ath_rate_table *);
@@ -17,3 +23,10 @@ u8 ath_get_send_tries(void);
 
 void ath_inc_rotating_rix(void);
 u8 ath_get_rotating_rix(void);
+
+char[3][100] ath_stats_buffer;
+int ath_stats_buffer_idx;
+
+int ath_stats_to_str(char *, size_t);
+char *ath_get_buffer();
+void ath_set_buffer();

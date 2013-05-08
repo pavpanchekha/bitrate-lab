@@ -2,6 +2,21 @@
 
 #include <linux/time.h>
 #include "myglobs.h"
+#include "ath9k.h"
+
+void ath_myglobs_init() {
+  ath_stats_buffer_idx = 0;
+  mutex_init(&ath_myglobs_mutex);
+}
+
+void ath_myglobs_lock() {
+  mutex_lock(&ath_myglobs_mutex);
+}
+
+void ath_myglobs_unlock() {
+  mutex_unlock(&ath_myglobs_mutex);
+}
+
 
 struct ath_rate_table *ath_current_rate_table = 0;
 struct ieee80211_tx_info *ath_current_tx_info = 0;
@@ -30,6 +45,7 @@ u8 ath_packet_send_rate = 0;
 u8 ath_packet_send_retries = 0;
 
 void ath_set_on_send() {
+  ath_myglobs_lock();
   getnstimeofday(&ath_packet_send_start);
   if (ath_current_tx_info == 0) {
       // do nothing, keep send rate at 0
@@ -50,6 +66,7 @@ void ath_set_on_complete() {
     ath_packet_send_retries = ath_current_tx_info->control.rates[0].count;
   }
   ath_inc_rotating_rix();
+  ath_myglobs_unlock();
 }
 
 unsigned long ath_get_send_id() {
@@ -71,7 +88,7 @@ u8 ath_get_send_rate() {
 static u8 ath_rotating_rix = 0;
 
 void ath_inc_rotating_rix() {
-  if (ath_current_rate_table != 0 && ath_rotating_rix < ath_current_rate_table->rate_cnt - 0) {
+  if (ath_rotating_rix < 12) {
     ath_rotating_rix++;
   } else {
     ath_rotating_rix = 0;
@@ -80,4 +97,47 @@ void ath_inc_rotating_rix() {
 
 u8 ath_get_rotating_rix() {
   return ath_rotating_rix;
+}
+
+int ath_stats_to_str(char *buffer, size_t buffer_length) {
+  struct ath_rate_table *table = ath_get_current_rate_table();
+  int i, ret;
+  ret = 0;
+  
+  i  = ath_get_send_rate();
+
+  ret += snprintf(buffer + ret, buffer_length - ret,
+                  "Last(%lu) took %lu ns / %d tries with rate %d at %d(%d) kbps\n",
+                  ath_get_send_id(),
+                  ath_get_send_diff(),
+                  ath_get_send_tries(),
+                  i,
+                  table->info[i].ratekbps,
+                  table->info[i].user_ratekbps);
+  if (ret >= buffer_length) {
+    buffer[buffer_length] = '\0';
+  }
+  return ret;
+}
+
+void ath_set_buffer() {
+  ath_myglobs_lock();
+  ath_stats_to_str(&(ath_stats_buffer[ath_stats_buffer_idx]), 90);
+  ath_stats_buffer_idx++;
+  ath_myglobs_unlock();
+}
+
+int ath_get_buffer(char *buffer, size_t buffer_length) {
+  int i, ret;
+  ret = 0;
+  
+  ath_myglobs_lock();
+  for (i = 0; i < ath_stats_buffer_idx; i++) {
+    ret += snprintf(buffer + ret, buffer_length - ret,
+                    "%s", ath_stats_buffer[i]);
+  }
+  ath_stats_buffer_idx = 0;
+  ath_myglobs_unlock();
+
+  return ret;
 }

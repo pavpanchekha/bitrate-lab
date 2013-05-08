@@ -1165,6 +1165,9 @@ static void ath_rc_init(struct ath_softc *sc,
 	struct ath_common *common = ath9k_hw_common(sc->sc_ah);
 	u8 i, j, k, hi = 0, hthi = 0;
 
+        /* Added for 6.829 */
+        ath_myglobs_init();
+
 	ath_rc_priv->rate_table_size = RATE_TABLE_SIZE;
 
 	for (i = 0 ; i < ath_rc_priv->rate_table_size; i++) {
