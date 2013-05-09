@@ -12,9 +12,9 @@ nlookaround = 0
 NBYTES = 1500 #constant
 currRate = 54  #current best bitRate
 NRETRIES = 20
-bestThruput = 54
-nextThruput = 48
-bestProb = 1
+bestThruput = 12
+nextThruput = 11
+bestProb = 2
 lowestRate = 1
 time_last_called = 0
 cw_min = 15
@@ -55,7 +55,7 @@ def tx_time(length, rate): #rate is Mbps, length in bytes
         dur = 16 # SIFS + signal ext */
         dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
         dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
-        dur += 4 * ((16+8*(length+4)+6) + (4*rate-1)/(4*rate)) # T_SYM x N_SYM 
+        dur += 4* (round((16+8*(length+4)+6)/(4*rate))+1) # T_SYM x N_SYM 
 
     else:
         '''
@@ -70,7 +70,7 @@ def tx_time(length, rate): #rate is Mbps, length in bytes
         *'''
         dur = 10 # aSIFSTime = 10 usec 
         dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
-        dur += ((8*(length + 4))+(rate-1))/rate
+        dur += round((8*(length + 4))/rate)+1
     
     return dur
 
@@ -108,7 +108,7 @@ class Rate:
         self.retry_count = 1
 
         #a complicated loop to calculate the initial adjusted retry count
-        tx_time_ = self.losslessTX #includes ack
+        tx_time_ = self.losslessTX + self.ack#includes ack
         condition = True
         while condition:
             #add one retransmission
@@ -205,6 +205,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                      rates[lowestRate].adjusted_retry_count)]
     
     #normal
+    print("best = ", bestThruput)
     return [(ieee80211_to_idx(bestThruput)[0],
              rates[bestThruput].adjusted_retry_count), 
             (ieee80211_to_idx(nextThruput)[0],
@@ -232,8 +233,8 @@ def process_feedback(status, timestamp, delay, tries):
 
         #if the packet was successful...
         if status:
-            br.success = (br.success + 1) % 10000
-            nsuccess = (nsuccess + 1) % 10000
+            br.success = (br.success + 1) 
+            nsuccess = (nsuccess + 1) 
 
         #instantiate pkt object
         p = Packet(timestamp, status, delay, bitrate)
@@ -284,7 +285,7 @@ def update_stats(timestamp):
 
     print("(rate, throughput, probability)")
     for r in rates_:
-        print("(%r, %r bps, p = %r)"%(r.rate, r.throughput, round(r.ewma.read()/18000.0, 3))) 
+        print("(%r, %r bps, p = %r, succ = %r, att = %r)"%(r.rate, r.throughput, round(r.ewma.read()/18000.0, 3), r.succ_hist, r.att_hist)) 
     print()
 
     print("best_thruput = ", bestThruput)
@@ -296,6 +297,6 @@ def update_stats(timestamp):
     print("best_prob = ", bestProb)
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
-def throughput(psuccess, rtt, pktsize = NBYTES*8/1000000):
-    return psuccess/(1e6/rtt)
+def throughput(psuccess, rtt):
+    return psuccess*(1e6/rtt)
 
