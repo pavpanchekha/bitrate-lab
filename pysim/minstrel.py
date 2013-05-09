@@ -222,32 +222,30 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
 def process_feedback(status, timestamp, delay, tries):
     global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
+    print("status = %r, tries %r" %(status, tries))
     for t in tries:
         (bitrate, tries) = t
-        nretries = tries-1
-        bitrate = common.RATES[bitrate][-1]/2.0
+        if tries > 0:
+            bitrate = common.RATES[bitrate][-1]/2.0
+            #if bitrate == 1:
+            
+            br = rates[bitrate]
+            br.attempts = (br.attempts + tries) 
+            npkts = (npkts + 1) 
+
+            #if the packet was successful...
+            if status:
+                br.success = (br.success + 1) 
+                nsuccess = (nsuccess + 1) 
+
+            #instantiate pkt object
+            p = Packet(timestamp, status, delay, bitrate)
+            
+            #add packet to window
+            br.window.append(p)
         
-        br = rates[bitrate]
-        br.attempts = (br.attempts + tries) % 10000
-        npkts = (npkts + 1) % 10000
-
-        #if the packet was successful...
-        if status:
-            br.success = (br.success + 1) 
-            nsuccess = (nsuccess + 1) 
-
-        #instantiate pkt object
-        p = Packet(timestamp, status, delay, bitrate)
-
-        #add packet to window
-        br.window.append(p)
-
-        #throughput, ewma_prob, this_prob, this_succ, this_attempt 
-        #all filled out during EWMA firing every 100ms?
-        #what do to about initial conditions (the first 100ms)?
-
-        if timestamp - time_last_called >= 1e8:
-            self.update_stats()
+    if timestamp - time_last_called >= 1e8:
+        self.update_stats(timestamp)
 
 def update_stats(timestamp):
     print("---------------------------------")
