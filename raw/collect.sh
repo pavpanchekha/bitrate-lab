@@ -3,5 +3,6 @@
 FILE=$1
 
 while true; do
-    tail -n1 /proc/ath_rate
-done | uniq
+    cat /proc/ath_rate
+    sleep .5
+done | tee "$FILE"

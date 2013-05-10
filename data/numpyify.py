@@ -4,12 +4,12 @@ import collections
 import re
 import sys
 
-FIELDS = ["ts", "delay", "tries", "rateid", "kbps", "user_kbps"]
+FIELDS = ["ts", "delay", "tries", "rateid", "kbps", "user_kbps", "i"]
 Record = collections.namedtuple("Record", FIELDS)
 
 NUM_RATES = 24
 
-LINE_RE = r"""Last\((\d+)\) took (\d+) ns / (\d+) tries with rate (\d+) at (\d+)\((\d+)\) kbps\n"""
+LINE_RE = r"""Last\((\d+)\) took (\d+) ns / (\d+) tries with rate (\d+) at (\d+)\((\d+)\) kbps \[(\d+)\]\n"""
 LINE_RE = re.compile(LINE_RE)
 def parse_line(lines):
     for line in lines:
