@@ -727,10 +727,10 @@ static void ath_get_rotating_rate(const struct ath_rate_table *rate_table,
 {
   int i = 1;
   ath_rc_rate_set_series(rate_table, &rates[0], txrc,
-                         20, ath_get_rotating_rix(), 0);
+                         1, ath_get_rotating_rix(), 0);
   for (; i < 4; i++) {
     ath_rc_rate_set_series(rate_table, &rates[i], txrc,
-                           20, 0, 0);
+                           1, 0, 0);
   }
 }
 
@@ -767,7 +767,7 @@ static void ath_get_rate(void *priv, struct ieee80211_sta *sta, void *priv_sta,
 	rix = ath_rc_get_highest_rix(ath_rc_priv, &is_probe);
 
         /* Added for 6.829 */
-        ath_set_current_rate_table(rate_table);
+        ath_set_current_rate_table((struct ath_rate_table *) rate_table);
         ath_set_current_tx_info(tx_info);
 
 

@@ -45,7 +45,7 @@ int ath_init_procfile() {
     ath_procfile->mode = S_IFREG | S_IRUGO;
     ath_procfile->uid = 0;
     ath_procfile->gid = 0;
-    ath_procfile->size = 256;
+    ath_procfile->size = (1 << 20);
 
 return 0;
 }

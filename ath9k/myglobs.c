@@ -6,18 +6,14 @@
 
 struct mutex ath_myglobs_mutex;
 
-char ath_stats_buffer[8192][64];
+char ath_stats_buffer[8192][128];
 int ath_stats_buffer_idx;
 
 struct ath_rate_table *ath_current_rate_table = 0;
 struct ieee80211_tx_info *ath_current_tx_info = 0;
 
 struct timespec ath_packet_send_start = { 0 };
-struct timespec ath_packet_send_end = { 0 };
-struct timespec ath_packet_send_id = { 0 };
-unsigned long ath_packet_send_diff = 0;
 u8 ath_packet_send_rate = 0;
-u8 ath_packet_send_retries = 0;
 
 static u8 ath_rotating_rix = 0;
 
@@ -51,7 +47,6 @@ void ath_set_current_tx_info(struct ieee80211_tx_info *tx_info) {
 }
 
 void ath_set_on_send() {
-  ath_myglobs_lock();
   getnstimeofday(&ath_packet_send_start);
   if (ath_current_tx_info == 0) {
       // do nothing, keep send rate at 0
@@ -60,77 +55,76 @@ void ath_set_on_send() {
   }
 }
 
-void ath_set_on_complete() {
-  struct timespec diff;
-  getnstimeofday(&ath_packet_send_end);
-  diff = timespec_sub(ath_packet_send_end, ath_packet_send_start);
-  ath_packet_send_id = ath_packet_send_start;
-  ath_packet_send_diff = diff.tv_sec * 1000000000L + diff.tv_nsec;
-  if (ath_current_tx_info == 0) {
-    //do nothing, keep tries at 0
-  } else {
-    ath_packet_send_retries = ath_current_tx_info->control.rates[0].count;
-  }
-  ath_inc_rotating_rix();
-  ath_myglobs_unlock();
-}
-
-unsigned long ath_get_send_id() {
-  return ath_packet_send_id.tv_sec * 1000000000L + ath_packet_send_id.tv_nsec;
-}
-
-unsigned long ath_get_send_diff() {
-  return ath_packet_send_diff;
-}
-
-u8 ath_get_send_tries() {
-  return ath_packet_send_retries;
-}
-
-u8 ath_get_send_rate() {
-  return ath_packet_send_rate;
-}
-
-void ath_inc_rotating_rix() {
-  if (ath_rotating_rix < 12) {
-    ath_rotating_rix++;
-  } else {
-    ath_rotating_rix = 0;
-  }
-}
-
 u8 ath_get_rotating_rix() {
   return ath_rotating_rix;
 }
 
-int ath_stats_to_str(char *buffer, size_t buffer_length) {
-  struct ath_rate_table *table = ath_get_current_rate_table();
-  int i, ret;
-  ret = 0;
-  
-  i  = ath_get_send_rate();
+void ath_set_on_complete() {
+  struct timespec ath_packet_send_end;
+  struct timespec diff;
+  u8 ath_packet_send_retries;
 
-  ret += snprintf(buffer + ret, buffer_length - ret,
-                  "Last(%lu) took %lu ns / %d tries with rate %d at %d(%d) kbps\n",
-                  ath_get_send_id(),
-                  ath_get_send_diff(),
-                  ath_get_send_tries(),
-                  i,
-                  table->info[i].ratekbps,
-                  table->info[i].user_ratekbps);
-  if (ret >= buffer_length) {
-    buffer[buffer_length] = '\0';
+  ath_rotating_rix = (ath_rotating_rix + 1) % 12;
+
+  getnstimeofday(&ath_packet_send_end);
+  diff = timespec_sub(ath_packet_send_end, ath_packet_send_start);
+
+  if (ath_current_tx_info == 0) {
+    //do nothing, keep tries at 0
+    ath_packet_send_retries = 0;
+  } else {
+    ath_packet_send_retries = \
+      ath_current_tx_info->control.rates[0].count + \
+      ath_current_tx_info->control.rates[1].count;
   }
-  return ret;
+
+  ath_set_buffer(ath_packet_send_start.tv_sec * 1000000000L + \
+                 ath_packet_send_start.tv_nsec,
+
+                 diff.tv_sec * 1000000000L + diff.tv_nsec,
+
+                 ath_packet_send_retries);
 }
 
-void ath_set_buffer() {
+void ath_set_buffer(unsigned long id, unsigned long diff, u8 retries) {
   ath_myglobs_lock();
   if (ath_stats_buffer_idx < sizeof(ath_stats_buffer) / sizeof(ath_stats_buffer[0])) {
-    ath_stats_to_str(ath_stats_buffer[ath_stats_buffer_idx], 64);
+    ath_stats_to_str(ath_stats_buffer[ath_stats_buffer_idx], 128,
+                     id, diff, retries);
     ath_stats_buffer_idx++;
   }
   ath_myglobs_unlock();
+}
+
+
+int ath_stats_to_str(char *buffer, size_t buffer_length,
+                     unsigned long id, unsigned long diff, u8 retries) {
+  struct ath_rate_table *table = ath_get_current_rate_table();
+  int i, ret;
+  ret = 0;
+
+  if (table == NULL) {
+   buffer[0] = '\0';
+    return 0;
+  }
+
+  i  = ath_packet_send_rate;
+
+  ret = snprintf(buffer, buffer_length,
+                 "Last(%lu) took %lu ns / %d tries with rate %d at %d(%d) kbps [%d]\n",
+                 id,
+                 diff,
+                 retries,
+                 i,
+                 table->info[i].ratekbps,
+                 table->info[i].user_ratekbps,
+                 ath_stats_buffer_idx);
+
+  if (ret >= buffer_length) {
+    buffer[buffer_length] = '\0';
+  }
+
+  return ret;
 }
 
 int ath_get_buffer(char *buffer, size_t buffer_length) {
