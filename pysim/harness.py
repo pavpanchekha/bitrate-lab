@@ -62,7 +62,7 @@ class Harness:
                 s_delay = s_delay - self.baseline
 
             # If it would take more tries than we have
-            if s_tries >= tries:
+            if s_tries > tries:
                 tot_tries.append((rate, tries))
                 self.histogram[rate] += tries
                 tot_delay += s_delay * (tries / s_tries)
