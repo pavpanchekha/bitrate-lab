@@ -110,7 +110,7 @@ if __name__ == "__main__":
         sys.exit()
 
     if len(sys.argv) >= 4:
-        seed = int(sys.argv[3])
+        seed = int(sys.argv[3]) % (2 << 20)
     else:
         seed = hash(random.random())
 
