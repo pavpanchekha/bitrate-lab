@@ -44,11 +44,15 @@ class EWMA:
         self.time = time
         self.step = time_step
         self.val = 0
+        self.inited = False
 
     def feed(self, time, val):
-        #steps = math.floor((time - self.time) / self.step)
-        p = self.p# ** steps
-        newval = self.val * p + val * (1 - p)
+        if not self.inited:
+            newval = self.val
+            self.inited = True
+        else:
+            p = self.p
+            newval = self.val * p + val * (1 - p)
 
         self.val = int(newval)
         self.time = time
