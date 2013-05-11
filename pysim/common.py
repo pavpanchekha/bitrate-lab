@@ -43,13 +43,11 @@ class EWMA:
         self.p = pval
         self.time = time
         self.step = time_step
-        self.val = 0
-        self.inited = False
+        self.val = None
 
     def feed(self, time, val):
-        if not self.inited:
-            newval = self.val
-            self.inited = True
+        if self.val is None:
+            newval = val
         else:
             p = self.p
             newval = self.val * p + val * (1 - p)
