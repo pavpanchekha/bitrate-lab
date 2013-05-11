@@ -21,6 +21,9 @@ cw_min = 15
 cw_max = 1023
 segment_size = 6000
 max_retry = 7 #safe default specified in kernel code
+np = 0
+nd = 0
+probeFlag = False
 
 # The average back-off period, in milliseconds, for up to 8 attempts of a 802.11b unicast packet. 
 # TODO: find g data
@@ -150,7 +153,7 @@ rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54]
 # populating the retry chain during the next 100 ms. Note that the retry chain is 
 # described below.
 def apply_rate(cur_time): #cur_time is in nanoseconds
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
+    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES, np, nd
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
 
     if cur_time - time_last_called >= 1e8:
@@ -170,11 +173,31 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     # 2  | Random rate      | Best throughput   | Next best throughput
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
-    if randint(1,100) <= 10:
+    #if randint(1,100) <= 10:
+    delta = (npkts*.1 - np + nd/2.0)
+    if delta  > 0: #random!
         #Analysis of information showed that the system was sampling too hard
         #at some rates. For those rates that never work (54mb, 500m range) 
         #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 
         #for the very very low probability rates, we sample at most twice.
+        
+        if npkts >= 10000:
+            np = 0
+            npkts = 0
+            nd = 0
+        elif delta > len(rates) * 2:
+            '''FROM KERNEL COMMENTS:
+            /* With multi-rate retry, not every planned sample          
+            * attempt actually gets used, due to the way the retry     
+            * chain is set up - [max_tp,sample,prob,lowest] for        
+            * sample_rate < max_tp.                                    
+            *                                                          
+            * If there's too much sampling backlog and the link        
+            * starts getting worse, minstrel would start bursting      
+            * out lots of sampling frames, which would result          
+            * in a large throughput loss. */'''
+            np += delta  - (len(rates)*2)
+            
 
         random = choice(list(rates))
         while(random == 1): #never sample at lowest rate
@@ -189,10 +212,20 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                      rates[bestProb].adjusted_retry_count), 
                     (ieee80211_to_idx(lowestRate)[0],
                      rates[lowestRate].adjusted_retry_count)]
+            ''' FROM KERNEL:
+            /* Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark        
+            * packets that have the sampling rate deferred to the      
+            * second MRR stage. Increase the sample counter only       
+            * if the deferred sample rate was actually used.           
+            * Use the sample_deferred counter to make sure that        
+            * the sampling is not done in large bursts */'''
+            probe_flag = True
+            nd += 1
+
         else:
-            #TODO: understand the corresponding kernel code more 
-            #and implement if (if necessary)
+            #manages probe counting
             if rates[random].sample_limit != 0:
+                np += 1
                 if rates[random].sample_limit > 0:
                     rates[random].sample_limit -= 1
             
@@ -214,7 +247,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
               rates[bestProb].adjusted_retry_count), 
              (ieee80211_to_idx(lowestRate)[0],
               rates[lowestRate].adjusted_retry_count)]
-    print(r)
+    #print(r)
     return r
         
 #status: true if packet was rcvd successfully
@@ -222,8 +255,8 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
 #delay: rtt for entire process (inluding multiple tries) in nanoseconds
 #tries: an array of (bitrate, nretries) 
 def process_feedback(status, timestamp, delay, tries):
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
-    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
+    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES, probeFlag
+    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called, nd, np
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
@@ -232,7 +265,7 @@ def process_feedback(status, timestamp, delay, tries):
             
             br = rates[bitrate]
             br.attempts = (br.attempts + br_tries) 
-            npkts = (npkts + 1) 
+            npkts = (npkts + br_tries) 
 
             #if the packet was successful...
             if status and t == (len(tries)-1):
@@ -244,9 +277,19 @@ def process_feedback(status, timestamp, delay, tries):
             
             #add packet to window
             br.window.append(p)
-        
+            
+    #if we had the random rate second in the retry chain, and actually ended up
+    #using it, increment the count and unset the flag
+    if t > 1 and probeFlag:
+        np += 1
+        probeFlag = False
+
+    if nd > 0:
+        nd-= 1
+
     if timestamp - time_last_called >= 1e8:
         self.update_stats(timestamp)
+
 
 def update_stats(timestamp):
     global bestThruput, nextThruput, bestProb, rates
