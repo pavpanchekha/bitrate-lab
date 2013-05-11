@@ -259,7 +259,7 @@ def update_stats(timestamp):
             br.ewma.feed(timestamp, p)
         p = br.ewma.read()
 
-        if p > 17100 or p < 1800:
+        if (p > 17100 or p < 1800) and  p != 0:
             br.adjusted_retry_count = br.retry_count >> 1
             if br.adjusted_retry_count > 2:
                 br.adjusted_retry_count = 2
