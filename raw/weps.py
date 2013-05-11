@@ -14,4 +14,4 @@ sock.bind(UDP_IP, UDP_PORT)
 
 while True:
     data, addr = sock.recvfrom(1024)
-    print "recieved message", data 
+    print("recieved message ", data)
