@@ -112,7 +112,7 @@ if __name__ == "__main__":
     if len(sys.argv) >= 4:
         seed = int(sys.argv[3])
     else:
-        seed = hash(random.random()) % (2 << 20)
+        seed = random.randint(0, sys.maxsize)
 
     random.seed(seed)
     print("Running with random seed {}".format(seed))
