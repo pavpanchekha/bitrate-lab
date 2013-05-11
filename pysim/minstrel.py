@@ -95,8 +95,8 @@ class Rate:
         self.last_update = 0.0 #timestamp of last update, ns(?)
         #ewma obj. can return probability of success. if you ask nicely.
         self.ewma = common.EWMA(0.0, 100e6, 0.75) #100e6 = 100 ms,
-        self.succ_hist = 0 #number of successful xmission in previous update interval
-        self.att_hist = 0 #number of xmission attempts in previous update interval
+        self.succ_hist = 0 #total successes ever
+        self.att_hist = 0 #total xmission attempts ever
         self.success = 0  #number of successful xmissions in cur time interval
         self.attempts = 0 #number of attempted transmissions in cur time interval
         self.losslessTX = tx_time(rate, 1200) #microseconds, pktsize 1200 in kernel,
@@ -259,7 +259,7 @@ def update_stats(timestamp):
             br.ewma.feed(timestamp, p)
         p = br.ewma.read()
 
-        if (p > 17100 or p < 1800) and  p != 0:
+        if p and (p > 17100 or p < 1800):
             br.adjusted_retry_count = br.retry_count >> 1
             if br.adjusted_retry_count > 2:
                 br.adjusted_retry_count = 2
@@ -283,16 +283,18 @@ def update_stats(timestamp):
 
     print("(rate, throughput, probability)")
     for r in rates_:
-        print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3), r.succ_hist, r.att_hist)) 
+        print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3) if r.ewma.read() else None, r.succ_hist, r.att_hist)) 
     print()
 
     nextThruput = rates_[1].rate
     #probably should be best prob that's not 1mbps, since othwerwise it would be
     # redundant to lowest base rate in retry chain
     rates_.remove(rates[1])
-    bestProb = max(rates_, key=lambda br: br.ewma.read()).rate#, reverse=True) -CJ
+    bestProb = max(rates_, key=lambda br: br.ewma.read() if br.ewma.read() else 0).rate#, reverse=True) -CJ
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
 def throughput(psuccess, rtt):
-    return psuccess*(1e6/rtt)
+    if psuccess:
+        return psuccess*(1e6/rtt)
+    else: return 0
 

@@ -56,4 +56,7 @@ class EWMA:
         self.time = time
 
     def read(self):
-        return self.val
+        if self.val:
+            return self.val
+        else: 
+            return None
