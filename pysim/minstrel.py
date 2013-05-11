@@ -38,7 +38,7 @@ odfm = set([6, 9, 12, 18, 24, 36, 48, 54])
 * len bytes (does not include FCS) at the given rate. Duration will
 * also include SIFS.
 */'''
-def tx_time(length, rate): #rate is Mbps, length in bytes
+def tx_time(rate, length): #rate is Mbps, length in bytes
     if rate in odfm:
         '''* OFDM:
         *
@@ -121,7 +121,8 @@ class Rate:
             
             tx_time_ += tx_time_single
 
-            condition = (tx_time_ < segment_size) and (self.retry_count + 1 < 
+            self.retry_count += 1
+            condition = (tx_time_ < segment_size) and (self.retry_count  < 
                                                       max_retry)
         self.adjusted_retry_count = self.retry_count #Max retrans. used for probing
 
@@ -151,10 +152,10 @@ rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54]
 def apply_rate(cur_time): #cur_time is in nanoseconds
     global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
+
     if cur_time - time_last_called >= 1e8:
         update_stats(cur_time)
         time_last_called = cur_time
-
 
     #Minstrel spends a particular percentage of frames, doing "look around" i.e. 
     #randomly trying other rates, to gather statistics. The percentage of 
@@ -180,7 +181,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
             random = choice(list(rates))
 
         if random < bestThruput:
-            return [(ieee80211_to_idx(bestThruput)[0],
+            r = [(ieee80211_to_idx(bestThruput)[0],
                      rates[bestThruput].adjusted_retry_count),
                     (ieee80211_to_idx(random)[0],
                      rates[random].adjusted_retry_count), 
@@ -195,7 +196,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                 if rates[random].sample_limit > 0:
                     rates[random].sample_limit -= 1
             
-            return [(ieee80211_to_idx(random)[0],
+            r = [(ieee80211_to_idx(random)[0],
                       rates[random].adjusted_retry_count), 
                     (ieee80211_to_idx(bestThruput)[0],
                      rates[bestThruput].adjusted_retry_count),
@@ -204,17 +205,18 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                     (ieee80211_to_idx(lowestRate)[0],
                      rates[lowestRate].adjusted_retry_count)]
     
-    #normal
-    print("best = ", bestThruput)
-    return [(ieee80211_to_idx(bestThruput)[0],
-             rates[bestThruput].adjusted_retry_count), 
-            (ieee80211_to_idx(nextThruput)[0],
-             rates[nextThruput].adjusted_retry_count), 
-            (ieee80211_to_idx(bestProb)[0],
-             rates[bestProb].adjusted_retry_count), 
-            (ieee80211_to_idx(lowestRate)[0],
-             rates[lowestRate].adjusted_retry_count)]
-    
+    else:     #normal
+        r = [(ieee80211_to_idx(bestThruput)[0],
+              rates[bestThruput].adjusted_retry_count), 
+             (ieee80211_to_idx(nextThruput)[0],
+              rates[nextThruput].adjusted_retry_count), 
+             (ieee80211_to_idx(bestProb)[0],
+              rates[bestProb].adjusted_retry_count), 
+             (ieee80211_to_idx(lowestRate)[0],
+              rates[lowestRate].adjusted_retry_count)]
+    print(r)
+    return r
+        
 #status: true if packet was rcvd successfully
 #timestamp: time pkt was sent
 #delay: rtt for entire process (inluding multiple tries) in nanoseconds
@@ -222,19 +224,18 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
 def process_feedback(status, timestamp, delay, tries):
     global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES
     global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
-    print("status = %r, tries %r" %(status, tries))
-    for t in tries:
-        (bitrate, tries) = t
-        if tries > 0:
+    for t in range(len(tries)):
+        (bitrate, br_tries) = tries[t]
+        if br_tries > 0:
             bitrate = common.RATES[bitrate][-1]/2.0
             #if bitrate == 1:
             
             br = rates[bitrate]
-            br.attempts = (br.attempts + tries) 
+            br.attempts = (br.attempts + br_tries) 
             npkts = (npkts + 1) 
 
             #if the packet was successful...
-            if status:
+            if status and t == (len(tries)-1):
                 br.success = (br.success + 1) 
                 nsuccess = (nsuccess + 1) 
 
@@ -248,7 +249,6 @@ def process_feedback(status, timestamp, delay, tries):
         self.update_stats(timestamp)
 
 def update_stats(timestamp):
-    print("---------------------------------")
     global bestThruput, nextThruput, bestProb, rates
 
     for i, br in rates.items():
@@ -283,16 +283,14 @@ def update_stats(timestamp):
 
     print("(rate, throughput, probability)")
     for r in rates_:
-        print("(%r, %r bps, p = %r, succ = %r, att = %r)"%(r.rate, r.throughput, round(r.ewma.read()/18000.0, 3), r.succ_hist, r.att_hist)) 
+        print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3), r.succ_hist, r.att_hist)) 
     print()
 
-    print("best_thruput = ", bestThruput)
-    nextThruput = rates_[0].rate
+    nextThruput = rates_[1].rate
     #probably should be best prob that's not 1mbps, since othwerwise it would be
     # redundant to lowest base rate in retry chain
     rates_.remove(rates[1])
     bestProb = max(rates_, key=lambda br: br.ewma.read()).rate#, reverse=True) -CJ
-    print("best_prob = ", bestProb)
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
 def throughput(psuccess, rtt):
