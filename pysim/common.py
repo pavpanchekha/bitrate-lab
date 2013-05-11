@@ -46,8 +46,8 @@ class EWMA:
         self.val = 0
 
     def feed(self, time, val):
-        steps = math.floor((time - self.time) / self.step)
-        p = self.p ** steps
+        #steps = math.floor((time - self.time) / self.step)
+        p = self.p# ** steps
         newval = self.val * p + val * (1 - p)
 
         self.val = int(newval)
