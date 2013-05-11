@@ -2,6 +2,7 @@ import numpy
 import time
 import common
 import os, sys
+import random
 
 DEBUG = "DEBUG" in os.environ
 
@@ -105,8 +106,16 @@ if __name__ == "__main__":
         alg = sys.argv[1]
         data_file = sys.argv[2]
     else:
-        print("USAGE: harness.py <algorithm> <data-file>")
+        print("USAGE: harness.py <algorithm> <data-file> [seed]")
         sys.exit()
+
+    if len(sys.argv) >= 4:
+        seed = int(sys.argv[3])
+    else:
+        seed = hash(random.random())
+
+    random.seed(seed)
+    print("Running with random seed {}".format(seed))
 
     data = load_data(data_file)
     module = __import__(alg)
