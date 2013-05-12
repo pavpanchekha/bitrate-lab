@@ -14,6 +14,8 @@ NBYTES = 1500 #constant
 currRate = 54 #current best bitRate
 NRETRIES = 1
 
+MAXFAILS = 25
+
 # The average back-off period, in microseconds, for up to 8 attempts of a 802.11b unicast packet. 
 # TODO: find g data
 backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5115,
@@ -111,7 +113,7 @@ def apply_rate(cur_time):
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
         for i, r in sorted(rates.items(), reverse=True):
-            if r.succFails < 4:
+            if r.succFails < MAXFAILS:
                 currRate = r.rate
                 return [(ieee80211_to_idx(currRate)[0], NRETRIES)]
 
@@ -125,7 +127,7 @@ def apply_rate(cur_time):
         #have a minimum packet transmission time lower than the
         #current bit-rate’s average transmission time."
         eligible = [r for i, r in rates.items()
-                    if r.losslessTX < cavgTX and r.succFails < 4]
+                    if r.losslessTX < cavgTX and r.succFails < MAXFAILS]
 
         if len(eligible) > 0:
             sampleRate = choice(eligible).rate #select random rate from eligible
@@ -250,7 +252,7 @@ def calculateMin():
 
     #set current rate to the one w/ min avg tx time
     c = rates[currRate]
-    if c.succFails > 4:
+    if c.succFails > MAXFAILS:
         c.avgTX = float("inf")
         #c = rates[1]
 
@@ -266,7 +268,7 @@ def calculateMin():
             c = r
             break
         #print("------------------------------------------------")
-        if c.avgTX > r.avgTX and r.succFails < 4:
+        if c.avgTX > r.avgTX and r.succFails < MAXFAILS:
             c = r
 
     currRate = c.rate
