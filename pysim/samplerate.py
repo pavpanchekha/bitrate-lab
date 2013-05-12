@@ -2,6 +2,8 @@
 # This file attempts to implement the SampleRate bit rate selection algorithm 
 # as outlined in the JBicket MS Thesis.
 
+from __future__ import division
+
 from random import choice 
 from common import ieee80211_to_idx
 import common
