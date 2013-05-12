@@ -77,14 +77,14 @@ class BalancedEWMA:
             self.denom = denom
             newval = num / denom
         else:
-            avg_block = self.denom / blocks
+            avg_block = self.denom / self.blocks
             block_weight = denom / avg_block
             relweight = self.p / (1 - self.p)
 
             prob = num / denom
 
-            newval = (self.val * relweight + prob * blockweight) / \
-                     (relweight + blockweight)
+            newval = (self.val * relweight + prob * block_weight) / \
+                     (relweight + block_weight)
 
         self.blocks += 1
         self.val = newval

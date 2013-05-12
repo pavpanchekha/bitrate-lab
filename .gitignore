@@ -2,3 +2,5 @@
 *.ko
 *.cmd
 *.mod.c
+*.pyc
+__pycache__
