@@ -104,6 +104,7 @@ class Rate:
         self.losslessTX = tx_time(rate, 1200) #microseconds, pktsize 1200 in kernel,
         self.ack = tx_time(rate, 10) #microseconds, assumes 1mbps ack rate
         self.window = [] #packets rcvd in last 10s
+        self.tban = 0
 
         #what is the difference between these?
         self.sample_limit = -1
@@ -172,7 +173,14 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     # 2  | Random rate      | Best throughput   | Next best throughput
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
-    if randint(1,100) <= 10:
+
+    if rates[bestThruput].tban > 4:
+        #print("Temp ban on {}, switching to {}!".format(bestThruput, nextThruput))
+        rates[bestThruput].tban = 0
+        bestThruput = nextThruput
+        nextThruput = bestProb
+    
+    if randint(1,100) <= 10 or rates[bestThruput].tban > 4:
         #Analysis of information showed that the system was sampling too hard
         #at some rates. For those rates that never work (54mb, 500m range) 
         #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 
@@ -240,6 +248,10 @@ def process_feedback(status, timestamp, delay, tries):
                 br.success = (br.success + 1) 
                 nsuccess = (nsuccess + 1) 
 
+                br.tban = 0
+            else:
+                br.tban += 1
+
             #instantiate pkt object
             p = Packet(timestamp, status, delay, bitrate)
             
@@ -249,8 +261,15 @@ def process_feedback(status, timestamp, delay, tries):
     if timestamp - time_last_called >= 1e8:
         self.update_stats(timestamp)
 
+USCNT = 0
 def update_stats(timestamp):
-    global bestThruput, nextThruput, bestProb, rates
+    global bestThruput, nextThruput, bestProb, rates, USCNT
+
+    USCNT += 1
+
+    if USCNT % 100 == 0:
+        for br in rates.values():
+            br.tban = 0
 
     for i, br in rates.items():
         if br.attempts: #prevents divide by 0
