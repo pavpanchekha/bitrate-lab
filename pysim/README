@@ -1,37 +1,18 @@
-Plan: have a server and a client object, client can fill in different bit rate adaptation algorithms.
+COMMAND:
+python harness.py <selection_algo> ../data/somedatafile.dat
 
-What are we measuring? Throughput (packets/second?) 
-"For all the measurements, the throughput for each algorithm or bit-rate was measured by counting the number of packets that the sender received an acknowledgment for from the receiver."
-
-"SampleRate calculates the transmission time for each packet using the packet length, bit-rate, and the number of re-tries (including 802.11 back-off)."
-
---if the send fails, what should we add to the record table as the TX time? Timeout time?
-
-samplerate returns a rate, and is passed (bitrate, ack_rcvd, TX_time)
---is TX time RTT?
+Example
+python harness.py minstrel ../data/test_1.dat
 
 
-How to store data?
-Dictionary keyed by rate?
-
--broadcast has no link-layer acks. the broadcasts are use to measure the 'lossless tx rate'
--"a 1500 byte broadcast packet at 11 megabits takes 1873 microseconds", so no ack
-
--we are using 802.11g
-Future work: 802.11n
-Samplerate w/ EWMA
-
--samplerate worse than fixed rate?
-
-Retries vs. Failures
---does the packet declare failure after 4 retries, or after 4 failures of any number of retries?
-
-Retry Chain?
---not mentioned in thesis. was it just not used?
-idea: come up with a version that uses retry chain
-
-If no packets have been successfully acknowledged, return the highest bit-rate that
-has not had 4 successive failures.
-
-question: what should approach be if we fail out at a high rate, but the lower rates have not been tried and thus have an infinite average TX?
-
+Files:
+common.py: a set of useful 802.11 helper functions
+harness.py: runs the test, using a specified bit rate protocol
+minstrel.py: the minstrel algorithm, as implemented in the 3.3.8 kernel
+samplerate.py: the SampleRate algorithm, as outlined in the jbicket ms thesis
+minproved.py: an improved version of the minstrel algorthm
+samplerate_retry.py: samplerate that uses a mrr
+samplerate_longer.py: samplerate that uses more than 4 successive failures
+constant.py: returns a constant bitrate, as specified by RATE=<num> (mbps)
+	     ex: RATE=11 python harness.py constant ../data/test_1.dat
+old/ : contains outdated versions

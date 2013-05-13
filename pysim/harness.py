@@ -1,4 +1,5 @@
-import numpy
+from __future__ import print_function
+from __future__ import division
 import time
 import common
 import os, sys
@@ -6,38 +7,49 @@ import random
 
 DEBUG = "DEBUG" in os.environ
 
+WINDOW = 1e7 # 10ms
+
 def load_data(source):
-    return numpy.load(source) / 1. # Convert to float
+    return eval(open(source, "rt").read())
 
-def packet_stats(data, time, rate):
-    time = time % len(data)
+LUOPS = 0
+def packet_stats(data, cache, time, rate):
+    global LUOPS
     
-    # First, we try to find a prior instance of such transmission
-    for i in range(time, -1, -1):
-        if data[i, rate].any():
-            delay, tries = data[i, rate]
-            return (delay, tries)
+    txs = []
 
-    # Next, try to find a future instance
-    for i in range(len(data)-1, time, -1):
-        if data[i, rate].any():
-            delay, tries = data[i, rate]
-            return (delay, tries)
-    
-    # Otherwise, this seems like a big problem, so we cause an error
-    raise ValueError("No data available at bit-rate", rate)
+    while not txs:
+        idx, w = cache[rate]
+        cache[rate][0] = 0
+        
+        for i in range(idx, len(data[rate])):
+            t, success, delay = data[rate][i]
+            LUOPS += 1
+            
+            if abs(t - time) < w:
+                txs.append((success, delay))
+                if not cache[rate][0]:
+                    cache[rate][0] = i
+                    cache[rate][1] = min(w / 1.5, WINDOW)
 
-def baseline(data):
-    s = data.sum(0)[0]
-    return s[0] / s[1]
+            if t > w + time:
+                break
+
+        cache[rate][1] *= 2
+
+    successful = [tx[1] for tx in txs if tx[0]]
+
+    return (len(successful) / len(txs), 
+            sum(successful) / sum([tx[1] for tx in txs]))
 
 class Harness:
     def __init__(self, data, choose_rate, push_statistics):
-        # Keep the time somewhat believable
-        #self.clock = time.time()
-        self.clock = 0
-        self.packet_num = 0
-        self.baseline = baseline(data)
+        self.start = data[0]
+        self.data = data[1]
+        self.cache = [[0, WINDOW] for i in self.data]
+        self.end = data[2]
+
+        self.clock = data[0]
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
@@ -56,22 +68,24 @@ class Harness:
         tot_tries = []
         tot_status = None
         for (rate, tries) in rate_arr:
-            s_delay, s_tries = packet_stats(data, self.packet_num, rate)
+            p_success, a_delay = packet_stats(self.data, self.cache, self.clock, rate)
 
-            # Correct for the extra packet transmission at the 0 rate
-            if s_tries >= 20:
-                s_delay = s_delay - self.baseline
+            s_tries = 0
+            succeeded = False
+            for i in range(tries):
+                success = random.random() < p_success
+                s_tries += 1
 
-            # If it would take more tries than we have
-            if s_tries > tries:
-                tot_tries.append((rate, tries))
-                self.histogram[rate] += tries
-                tot_delay += s_delay * (tries / s_tries)
-            else: # We successfully transmit the packet
-                tot_tries.append((rate, s_tries))
-                self.histogram[rate] += s_tries
-                tot_delay += s_delay
-                tot_status = True # Success
+                if success:
+                    succeeded = True
+                    break
+
+            tot_tries.append((rate, s_tries))
+            self.histogram[rate] += s_tries
+            tot_delay += s_tries * common.tx_time(rate, 1500)
+
+            if succeeded:
+                tot_status = True
                 break
         else:
             tot_status = False # Failure
@@ -85,21 +99,38 @@ class Harness:
 
         self.push_statistics(tot_status, self.clock, tot_delay, tot_tries)
 
-        self.packet_num += 1
         self.clock += tot_delay
         return tot_status
 
-    def run(self, n):
-        self.clock = 0
-        self.packet_num = 0
+    def run(self):
+        self.clock = self.start
 
-        i = 0
-        while i < n:
-            status = self.send_packet()
-            if status:
-                i += 1
+        good = 0
+        bad = 0
+        print("Please wait, running simulation:     ", end="")
+        lenlast = 0
+        try:
+            while self.clock < self.end:
+                pct = int(100 * (self.clock-self.start) / (self.end-self.start))
 
-        return (self.clock, self.packet_num - n)
+                print("\b" * lenlast, end="")
+                msg = "{: 3d}%, {}".format(pct, LUOPS)
+                lenlast = len(msg)
+                print(msg, end="")
+                sys.stdout.flush()
+
+                status = self.send_packet()
+                if status:
+                    good += 1
+                else:
+                    bad += 1
+        except KeyboardInterrupt as e:
+            pass
+        print()
+
+        time = self.clock - self.start
+
+        return time, good, bad
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:
@@ -120,11 +151,14 @@ if __name__ == "__main__":
     data = load_data(data_file)
     module = __import__(alg)
     harness = Harness(data, module.apply_rate, module.process_feedback)
-    time, fail = harness.run(len(data))
+    time, good, bad = harness.run()
+    
     if DEBUG: print()
-    print("[summary] {:.2f} s to send {} packets ({} failures)".format(time / 1e9, len(data), fail))
-    throughput = 1500 * 8 * len(data) / (time / 1e9) / 1e6
-    print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / len(data) / 1e6, throughput))
+
+    print("Simulation ran with {} LUOPS".format(LUOPS))
+    print("[summary] {:.2f} s to send {} packets (and {} failures)".format(time / 1e9, good, bad))
+    throughput = 1500 * 8 * good / (time / 1e9) / 1e6
+    print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / good / 1e6, throughput))
 
     for rate_idx, tries in enumerate(harness.histogram):
         if not tries: continue

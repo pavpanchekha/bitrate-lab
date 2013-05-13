@@ -1,5 +1,7 @@
 # Colleen Josephson, 2013
-# This file attempts to implement the minstrel rate control algorithm
+# This file attempts to implement the minstrel rate control algorithm from the
+# 3.3.8 linux kernel. We assume multi-rate retry capabilities, so we omit 
+# the code for the non-mrr case. 
 
 from random import randint
 from random import choice 

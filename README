@@ -1,0 +1,8 @@
+6.829 Final Project, Spring 2013
+Colleen Josephson and Pavel Panchekha
+
+ath9k/: modified network driver we used to collect traces
+raw/: the raw data. also see data.txt
+data/: formatted data. also see data.txt
+pysim/: python simulation framework, including the bit rate algos
+paper/: writeup

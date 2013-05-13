@@ -2,7 +2,7 @@
 
 FILE=$1
 
-cat /proc/ath_rate >/dev/null
+cat /proc/ath_rate
 
 while true; do
     cat /proc/ath_rate

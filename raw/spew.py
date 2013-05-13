@@ -11,6 +11,13 @@ print("Spewing to {}:{}, {} bytes per packet".format(UDP_IP, UDP_PORT,
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+if UDP_IP == "<broadcast>":
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+i = 0
 while True:
-    MESSAGE = bytes(random.randint(0, 255) for i in range(MESSAGE_LEN))
+    PREFIX = "Seq {}\n".format(i).encode("utf-8")
+    MESSAGE = PREFIX + bytes(random.randint(0, 255) for i in range(MESSAGE_LEN - len(PREFIX)))
     sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
+    print(PREFIX)
+    i += 1
