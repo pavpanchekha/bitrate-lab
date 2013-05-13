@@ -1,0 +1,66 @@
+~/school/6.829/final/pysim:$> time pypy harness2.py pavel ../data2/moving_2.dat 
+Running with random seed 89687849596899093
+Please wait, running simulation:      99%, 14289241
+Simulation ran with 14289242 LUOPS
+[summary] 52.83 s to send 66717 packets (and 0 failures)
+Average packet took 0.792 ms / achieved 15.156 Mbps
+  1.0 Mbps :    9 tries
+  2.0 Mbps :    3 tries
+  5.5 Mbps :  295 tries
+ 11.0 Mbps : 1862 tries
+  6.0 Mbps :   17 tries
+  9.0 Mbps : 1568 tries
+ 12.0 Mbps : 6780 tries
+ 18.0 Mbps : 49301 tries
+ 24.0 Mbps : 5520 tries
+ 36.0 Mbps : 4102 tries
+ 48.0 Mbps : 3794 tries
+ 54.0 Mbps : 13622 tries
+
+real	0m6.903s
+user	0m6.247s
+sys	0m0.363s
+~/school/6.829/final/pysim:$> time pypy harness2.py minstrel ../data2/moving_2.dat 
+Running with random seed 7420637716890545807
+Please wait, running simulation:      99%, 10335217
+Simulation ran with 10335218 LUOPS
+[summary] 52.83 s to send 47708 packets (and 2 failures)
+Average packet took 1.107 ms / achieved 10.837 Mbps
+  1.0 Mbps :   20 tries
+  2.0 Mbps :   71 tries
+  5.5 Mbps :   96 tries
+ 11.0 Mbps : 3515 tries
+  6.0 Mbps :   57 tries
+  9.0 Mbps :  137 tries
+ 12.0 Mbps : 5271 tries
+ 18.0 Mbps : 33837 tries
+ 24.0 Mbps : 13757 tries
+ 36.0 Mbps : 13489 tries
+ 48.0 Mbps : 13895 tries
+ 54.0 Mbps : 22455 tries
+
+real	0m5.777s
+user	0m5.293s
+sys	0m0.233s
+~/school/6.829/final/pysim:$> time pypy harness2.py samplerate ../data2/moving_2.dat 
+Running with random seed 2462963293633666071
+Please wait, running simulation:      99%, 11105527
+Simulation ran with 11106369 LUOPS
+[summary] 52.83 s to send 42647 packets (and 436 failures)
+Average packet took 1.239 ms / achieved 9.688 Mbps
+  1.0 Mbps :  577 tries
+  2.0 Mbps :  464 tries
+  5.5 Mbps :  529 tries
+ 11.0 Mbps : 11917 tries
+  6.0 Mbps :   33 tries
+  9.0 Mbps : 5931 tries
+ 12.0 Mbps : 15369 tries
+ 18.0 Mbps : 8167 tries
+ 24.0 Mbps :   24 tries
+ 36.0 Mbps :   24 tries
+ 48.0 Mbps :   24 tries
+ 54.0 Mbps :   24 tries
+
+real	0m12.002s
+user	0m11.223s
+sys	0m0.303s

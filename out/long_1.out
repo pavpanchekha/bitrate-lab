@@ -1,0 +1,66 @@
+~/school/6.829/final/pysim:$> time pypy harness2.py pavel ../data2/long_1.dat 
+Running with random seed 3109473335068907536
+Please wait, running simulation:      99%, 568674748
+Simulation ran with 568688704 LUOPS
+[summary] 385.93 s to send 391136 packets (and 222 failures)
+Average packet took 0.987 ms / achieved 12.162 Mbps
+  1.0 Mbps : 1108 tries
+  2.0 Mbps : 1170 tries
+  5.5 Mbps : 5698 tries
+ 11.0 Mbps : 33337 tries
+  6.0 Mbps : 5591 tries
+  9.0 Mbps : 13169 tries
+ 12.0 Mbps : 60656 tries
+ 18.0 Mbps : 274743 tries
+ 24.0 Mbps : 29884 tries
+ 36.0 Mbps : 38542 tries
+ 48.0 Mbps : 24059 tries
+ 54.0 Mbps : 42149 tries
+
+real	0m45.349s
+user	0m41.563s
+sys	0m1.853s
+~/school/6.829/final/pysim:$> time pypy harness2.py minstrel ../data2/long_1.dat 
+Running with random seed 3605097309086891616
+Please wait, running simulation:      99%, 430672054
+Simulation ran with 430685113 LUOPS
+[summary] 385.92 s to send 268228 packets (and 277 failures)
+Average packet took 1.439 ms / achieved 8.340 Mbps
+  1.0 Mbps :  915 tries
+  2.0 Mbps : 1536 tries
+  5.5 Mbps : 2286 tries
+ 11.0 Mbps : 27865 tries
+  6.0 Mbps : 1872 tries
+  9.0 Mbps : 8945 tries
+ 12.0 Mbps : 45604 tries
+ 18.0 Mbps : 219198 tries
+ 24.0 Mbps : 85901 tries
+ 36.0 Mbps : 92361 tries
+ 48.0 Mbps : 90986 tries
+ 54.0 Mbps : 114080 tries
+
+real	0m35.396s
+user	0m32.593s
+sys	0m1.340s
+~/school/6.829/final/pysim:$> time pypy harness2.py samplerate ../data2/long_1.dat 
+Running with random seed 1437751306887659926
+Please wait, running simulation:      99%, 433794305
+Simulation ran with 433800471 LUOPS
+[summary] 385.92 s to send 239426 packets (and 50666 failures)
+Average packet took 1.612 ms / achieved 7.445 Mbps
+  1.0 Mbps : 3049 tries
+  2.0 Mbps : 7045 tries
+  5.5 Mbps : 19361 tries
+ 11.0 Mbps : 44134 tries
+  6.0 Mbps : 20252 tries
+  9.0 Mbps : 33223 tries
+ 12.0 Mbps : 68692 tries
+ 18.0 Mbps : 91809 tries
+ 24.0 Mbps : 1200 tries
+ 36.0 Mbps :  156 tries
+ 48.0 Mbps :  156 tries
+ 54.0 Mbps : 1015 tries
+
+real	1m49.406s
+user	1m43.623s
+sys	0m2.000s
