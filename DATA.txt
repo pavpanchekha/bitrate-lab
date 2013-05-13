@@ -9,7 +9,7 @@ Files `raw/*.trace`
 
 These are directly captured from the kernel; they have one record per line, such as:
 
-    Last(2630707680) took 5135412 ns / 20 tries with rate 22 at 26000(24800) kbps
+    Last(2630707680) took 5135412 ns / 20 tries with rate 22 at 26000(24800) kbps [1]
     
 There are six fields here:
 
@@ -22,10 +22,35 @@ There are six fields here:
  
 The last line of each file may be incomplete.  The records may also be muddled with concurrency errors and partial reads.  It is suggested that the `data/numpyify.py` script be used to transform these files before use.
 
+Files `raw2/*.trace`
+--------------------
+
+These are directly captured from the kernel, with newer versions; they have one record per line, such as:
+
+    Last(2630707680) took 5135412 ns / 20 tries with rate 22 at 26000(24800) kbps [1]
+    
+There are six fields here:
+
+ + A unique identifier based on the start time for transmission
+ + The time it took to transmit the packet, in nanoseconds
+ + The number of tries it took to transmit it (including the successful transmission), up to 20.
+ + The identifier for the rate
+ + The rate's kilobits per second
+ + The rate's kilobits of payload per second; this elides the overhead of FEC and physical-layer headers.
+ + The line's index in the internal kernel buffer; if this ever surpasses about 30, we might be missing records.
+      
+It is suggested that the `data2/munge.py` script be used to transform these files before use.
+
+There are also sanity-check lines like
+
+    0:46 1:323 2:5 3:9 4:13 5:76 6:169 7:739 8:228 9:100 10:290 11:3 
+ 
+These are ignored by the munger, but if any numbers get appreciably big (compared to the range of an unsigned int), there may be problems.
+
 Files `data/*.npy`
 ------------------
 
-These files are converted from the above into Numpy array dumps.  They're best read with:
+These files are converted from the `raw/*.trace` files into Numpy array dumps.  They're best read with:
 
     data = numpy.load([file_object or file_name])
 
@@ -39,3 +64,14 @@ Some entries of this array claim to have zero tries that took zero nanoseconds. 
     if data[t, rate].any():
         ...
 
+
+Files `data2/*.dat`
+-------------------
+
+These files are converted from the `raw2/*.trace` files into Python trace dumps.  They're best read with:
+
+    eval(open(file_name, "rt").read())
+
+Each file contains a tuple, with three entries: the start time of the first packet, the data arrays, and the start time of the last packet.  The data array has a list of tuples for each rate; thus, it is a list of 12 lists.
+
+Each list of tuples has tuples of three elements: the send time, whether or not the packet succeeded, and how long the transmission took.  The tuples are ordered by send time.
