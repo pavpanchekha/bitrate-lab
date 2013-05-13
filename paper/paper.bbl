@@ -1,0 +1,20 @@
+\begin{thebibliography}{1}
+
+\bibitem{samplerate}
+{\sc Bicket, J.}
+\newblock Bit-rate selection in wireless networks.
+\newblock Master's thesis, MIT, 2005.
+
+\bibitem{minstrel}
+{\sc Smithies, D.}
+\newblock Minstrel rate control algorithm for mac80211.
+
+\bibitem{sprout}
+{\sc Winstein, K., Sivaraman, A., and Balakrishnan, H.}
+\newblock Stochastic forecasts achieve high throughput and low delay over
+  cellular networks.
+\newblock In {\em Proceedings of the Tenth USENIX Symposium on Networked
+  Systems Design and Implementation ({NSDI 2013})\/} (Lombard, Ill, April
+  2013).
+
+\end{thebibliography}
