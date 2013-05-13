@@ -123,7 +123,7 @@ def apply_rate(cur_time):
 
         #" that have not failed four successive times and that
         #have a minimum packet transmission time lower than the
-        #current bit-rate’s average transmission time."
+        #current bit-rate's average transmission time."
         eligible = [r for i, r in rates.items()
                     if r.losslessTX < cavgTX and r.succFails < 4]
 
@@ -193,7 +193,7 @@ def process_feedback(status, timestamp, delay, tries):
     p = Packet(timestamp, status, tx, bitrate)
     br.window.append(p)
 
-#"SampleRate’s remove stale results() function removes results from
+#"SampleRate's remove stale results() function removes results from
 # the transmission results queue that were obtained longer than ten
 # seconds ago."
 def remove_stale_results(cur_time):
