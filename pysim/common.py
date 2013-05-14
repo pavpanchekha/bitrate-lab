@@ -19,7 +19,7 @@ RATES = [
     BitRate("ofdm", 48000, 27400, 10, 96),
     BitRate("ofdm", 54000, 30900, 11, 108),
 
-    # Ignored by some bit rate protocols
+    # Ignored but here for completeness
     BitRate("ht_ss", 6500, 6400, 0, 0),
     BitRate("ht_ss", 13000, 12700, 1, 1),
     BitRate("ht_ss", 19500, 18800, 2, 2),
