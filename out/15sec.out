@@ -1,0 +1,66 @@
+~/school/6.829/final/pysim:$> time pypy harness.py minproved ../data/15sec.dat 
+Running with random seed 8216520260735615644
+Please wait, running simulation:      99%, 648536
+Simulation ran with 648719 LUOPS
+[summary] 15.10 s to send 15701 packets (and 3 failures)
+Average packet took 0.962 ms / achieved 12.476 Mbps
+  1.0 Mbps :    9 tries
+  2.0 Mbps :    7 tries
+  5.5 Mbps :  234 tries
+ 11.0 Mbps :  569 tries
+  6.0 Mbps :    4 tries
+  9.0 Mbps : 1918 tries
+ 12.0 Mbps : 4505 tries
+ 18.0 Mbps : 5349 tries
+ 24.0 Mbps :  623 tries
+ 36.0 Mbps : 3490 tries
+ 48.0 Mbps :  798 tries
+ 54.0 Mbps : 6601 tries
+
+real	0m2.555s
+user	0m2.357s
+sys	0m0.110s
+~/school/6.829/final/pysim:$> time pypy harness.py minstrel ../data/15sec.dat 
+Running with random seed 8156184434231387168
+Please wait, running simulation:      99%, 628188
+Simulation ran with 628531 LUOPS
+[summary] 15.10 s to send 12860 packets (and 7 failures)
+Average packet took 1.174 ms / achieved 10.219 Mbps
+  1.0 Mbps :   19 tries
+  2.0 Mbps :   21 tries
+  5.5 Mbps :  108 tries
+ 11.0 Mbps : 1563 tries
+  6.0 Mbps :   62 tries
+  9.0 Mbps :  898 tries
+ 12.0 Mbps : 2161 tries
+ 18.0 Mbps : 5943 tries
+ 24.0 Mbps : 2527 tries
+ 36.0 Mbps : 3838 tries
+ 48.0 Mbps : 2982 tries
+ 54.0 Mbps : 9140 tries
+
+real	0m2.719s
+user	0m2.513s
+sys	0m0.110s
+~/school/6.829/final/pysim:$> time pypy harness.py samplerate ../data/15sec.dat 
+Running with random seed 1638193272618977391
+Please wait, running simulation:      99%, 305736
+Simulation ran with 305988 LUOPS
+[summary] 15.10 s to send 6262 packets (and 1147 failures)
+Average packet took 2.411 ms / achieved 4.976 Mbps
+  1.0 Mbps :  650 tries
+  2.0 Mbps :   16 tries
+  5.5 Mbps :    4 tries
+ 11.0 Mbps : 1353 tries
+  6.0 Mbps :  315 tries
+  9.0 Mbps :    6 tries
+ 12.0 Mbps : 5025 tries
+ 18.0 Mbps :    8 tries
+ 24.0 Mbps :    8 tries
+ 36.0 Mbps :    8 tries
+ 48.0 Mbps :    8 tries
+ 54.0 Mbps :    8 tries
+
+real	0m2.335s
+user	0m2.207s
+sys	0m0.073s
