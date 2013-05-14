@@ -21,7 +21,7 @@
 
 % This version uses the latex2e styles, not the very ancient 2.09 stuff.
 \documentclass[letterpaper,twocolumn,10pt]{article}
-\usepackage{epsfig,graphicx,usenix,fullpage}
+\usepackage{epsfig,graphicx,usenix}
 
 
 %\usepackage{endnotes}
@@ -64,11 +64,14 @@ The two most popular fram-based protocols are SampleRate and Minstrel. Both were
 This paper will provide a general overview of SampleRate and Minstrel. We then discuss our testing methodology. We compare the performance of the two algorithms, and then discuss modifications we made to Minstrel and compare it's performance to the current kernel implementation.
 \section{SampleRate}
 
+SampleRate sends at the rate with the lowest average transmission time. Every ten packets, it sends out a sample packet at a random rate that has a smaller predicted transmission time than the current rate. SampleRate updates its transmission time estimates every ten seconds based on feedback from the card about which packets succeeded and at which rate they were sent. If the current best rate experiences four successive failures, SampleRate stops using that rate. 
+
 Sample all the rates~\cite{samplerate, sprout, minstrel}.
 
 \section{Minstrel}
 
-Derek Smithies, Ph-fucking-D.
+Minstrel utilizes the multi-rate retry chain (mrr), which is an array that tells the card which rates to try before reporting a failure. The retry chain makes failures extremely unlikely. Minstrel has a mrr of [highest throughput, next highest throughput, best probability, lowest base rate] for most packets. In essence, Minstrel tells the card to send at the highest throughput rates but to fall back to reliable rates upon failure. The throughput and success probability are calculated for each rate every 100ms. 
+To keep an accurate estimate of throughput and probability for each rate, Minstrel sends sample frames ten percent of the time. If the randomly chosen rate has a higher lossless throughput than the current optimal rate, the mrr is as follows: [random, highest throughput, best probability, lowest base rate]. If the random rate is slower than the optimal rate, it is moved further back in the retry chain: [best throughput, random, best probability, lowest base rate]. This ensures that Minstrel never samples rates worse than the current optimal rate unless the optimal rate experiences a failure. 
 
 \section{Methodology}
 
@@ -108,12 +111,12 @@ We should make our github repo or something like that available here.
 
 The end.
 
-{\footnotesize \bibliographystyle{acm}
-\bibliography{paper}}
-
-
 \section{Acknowledgements}
 Jonathan Perry, Hari Balikrishnan, and Derek Smithies. 
+
+
+{\footnotesize \bibliographystyle{acm}
+\bibliography{paper}}
 
 \end{document}
 

@@ -1,11 +1,10 @@
 (TeX-add-style-hook "paper"
  (lambda ()
-    (LaTeX-add-bibliographies
-     "../common/bibliography")
+    (LaTeX-add-bibliographies)
     (TeX-run-style-hooks
-     "endnotes"
-     "epsfig"
      "usenix"
+     "graphicx"
+     "epsfig"
      ""
      "latex2e"
      "art10"
