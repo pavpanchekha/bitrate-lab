@@ -57,7 +57,7 @@ In this paper we compare the performance SampleRate and Minstrel, two popular bi
 
 One of the key ways that wireless networks differ from wired is that wireless networks have varying link rates. Link conditions vary with time due to interference from other devices, changing network geometry, and mobile clients. An optimal rate at some time $t$ may be different from the optimal rate just 30 seconds earlier. A good bit rate selection algorithm has to detect and adapt to these conditions. If the chosen bit rate is too slow, then the throughput will be unnecessarily low. If the rate is too high, then failures will be very frequent and throughput will again suffer. 
 
-There are three main classes of bit rate adaptiation protocols: frame-based, SNR-based, and cross-layer protocols. Frame-based protocols measure the fraction of sucessfully received protocols. SNR protocols make decisions based on the estimated Signal to Noise ratio. Cross-layer protocols use SoftPHY data from the physical layer. The most commonly implemented protocols on today's networks are frame based, because SNR protocols perform poorly [CITATION HERE], and cross-layer protocols cannot be deployed on current networks because they violate the network layering abstration. 
+There are three main classes of bit rate adaptiation protocols: frame-based, SNR-based, and cross-layer protocols. Frame-based protocols measure the fraction of sucessfully received protocols. SNR protocols make decisions based on the estimated Signal to Noise ratio. Cross-layer protocols use SoftPHY data from the physical layer. The most commonly implemented protocols on today's networks are frame based, because SNR protocols perform poorly~\cite{samplerate}, and cross-layer protocols cannot be deployed on current networks because they violate the network layering abstration. 
 
 The two most popular fram-based protocols are SampleRate and Minstrel. Both were implemented in the MadWifi drivers for Linux wirless, and today Minstrel is the default bit-rate selection algorithm for all wireless drivers on Linux. Our research used a trace-based approach to analyze the performance of these two algorithms. We also created a modified version of Minstrel that provides significant throughput gains over the vanilla Minstrel implementation. 
 
@@ -92,13 +92,13 @@ The probability $p$ of a successful transmission is calculated from statistics c
 
 \section{Methodology}
 
-We used a trace-based approach to collect data, and then replayed that data to the rate-selection algorithms using a Python framework. Th
+We used a trace-based approach to collect data, and then replayed that data to the rate-selection algorithms using a Python framework.
 
 \subsection{Motivation}
 
 Our initial plan was to use the algorithms as implemented in the MadWifi drivers for the Atheros chipset. However, MadWifi is depricated, and only runs on quite old network cards. In addition to the lack of compatible hardware available to us, MadWifi is not an accurate reflection of what a modern user would use. We looked into the ath5k and ath9k projects, which were created to replace MadWifi. Both of these did not port the old bit-rate selection system from MadWifi and instead opted to use the linux kernel's rate selection software, which only offers Minstrel. Porting SampleRate over to the new drivers would not have been trivial, as there are vast differences in the assumed interfaces. 
 
-At this point, we decided to take a different approach and use an approach similar to that used in Sprout.
+At this point, we decided to take a different approach and use an approach similar to that used in Sprout~\cite{sprout}.
 
 
 \subsection{Trace Collection}
@@ -108,7 +108,6 @@ At this point, we decided to take a different approach and use an approach simil
   \caption{We collected most traces at a remote access point in the basement of Building 13 at MIT.}
 \end{figure}
 
-Yeee haw.
 \begin{figure}[htb]
   \hspace{-.75em}\includegraphics[width=3.5in]{constant.png}\vspace{-0em}
   \caption{Throughput of using a constant 802.11b/g bitrate in an MIT basement.}
