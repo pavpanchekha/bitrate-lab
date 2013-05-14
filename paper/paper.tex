@@ -75,11 +75,14 @@ To keep an accurate estimate of throughput and probability for each rate, Minstr
 
 \section{Methodology}
 
-We did some things using some methods.
+We used a trace-based approach to collect data, and then replayed that data to the rate-selection algorithms using a Python framework. Th
 
 \subsection{Motivation}
 
-MadWifi is old and sucks plus we'd need to buy hardware off e-bay. The current Atheros drivers use the linux default, Minstrel. There is no kernel implementation of SampleRate and porting it woile have been extremely annoying (possibly impossible) given the time constraints. Etc. Etc. Blah Blah. 
+Our initial plan was to use the algorithms as implemented in the MadWifi drivers for the Atheros chipset. However, MadWifi is depricated, and only runs on quite old network cards. In addition to the lack of compatible hardware available to us, MadWifi is not an accurate reflection of what a modern user would use. We looked into the ath5k and ath9k projects, which were created to replace MadWifi. Both of these did not port the old bit-rate selection system from MadWifi and instead opted to use the linux kernel's rate selection software, which only offers Minstrel. Porting SampleRate over to the new drivers would not have been trivial, as there are vast differences in the assumed interfaces. 
+
+At this point, we decided to take a different approach and use an approach similar to that used in Sprout.
+
 
 \subsection{Trace Collection}
 
