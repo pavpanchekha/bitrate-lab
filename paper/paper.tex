@@ -21,7 +21,10 @@
 
 % This version uses the latex2e styles, not the very ancient 2.09 stuff.
 \documentclass[letterpaper,twocolumn,10pt]{article}
-\usepackage{usenix,epsfig,endnotes}
+\usepackage{epsfig,graphicx,usenix,fullpage}
+
+
+%\usepackage{endnotes}
 \begin{document}
 
 %don't want date printed
@@ -31,7 +34,7 @@
 \title{\Large \bf 6.829 Final Project: A comparison of bit-rate selection algorithms}
 %for single author (just remove % characters)
 \author{
-{\rm Colleen Josephson}\\
+{\rm Colleen Josephson\footnote{Supported in part by Lindt Chocolatier.}}\\
 MIT
 \and
 {\rm Pavel Panchekha}\\
@@ -46,8 +49,7 @@ MIT
 
 % Use the following at camera-ready time to suppress page numbers.
 % Comment it out when you first submit the paper for review.
-\thispagestyle{empty}
-
+%\thispagestyle{empty}
 
 \subsection*{Abstract}
 In this paper we compare the performance SampleRate and Minstrel, two popular bit rate selection algorithms that have widespread real-world usage on the Linux operating system. We use a novel trace-based approach that allows us avoid in-depth kernel programming and write simple Python scripts instead. We also introduce improvements to the Minstrel algorithm that allow for significant gains in throughput. 
@@ -79,6 +81,10 @@ MadWifi is old and sucks plus we'd need to buy hardware off e-bay. The current A
 \subsection{Trace Collection}
 
 Yeee haw.
+\begin{figure}[htb]
+  \hspace{-4em}\includegraphics[width=3.75in]{constant.png}\vspace{-2em}
+  \caption{dfg}
+\end{figure}
 
 \subsection{Testing framework}
 
