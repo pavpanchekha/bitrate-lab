@@ -1,0 +1,51 @@
+Minproved:
+Average packet took 1.042 ms / achieved 11.520 Mbps
+Average packet took 1.047 ms / achieved 11.466 Mbps
+Average packet took 1.061 ms / achieved 11.308 Mbps
+Average packet took 1.051 ms / achieved 11.418 Mbps
+Average packet took 1.080 ms / achieved 11.116 Mbps
+Average packet took 1.076 ms / achieved 11.158 Mbps
+Average packet took 1.093 ms / achieved 10.981 Mbps
+Average packet took 1.055 ms / achieved 11.377 Mbps
+Average packet took 1.048 ms / achieved 11.447 Mbps
+Average packet took 1.091 ms / achieved 10.997 Mbps
+
+Avg: 11.276
+min = 10.981
+max = 11.520
+(+- 0.275 from avg)
+
+Minstrel:
+Average packet took 1.577 ms / achieved 7.610 Mbps
+Average packet took 1.585 ms / achieved 7.570 Mbps
+Average packet took 1.565 ms / achieved 7.667 Mbps
+Average packet took 1.568 ms / achieved 7.651 Mbps
+Average packet took 1.567 ms / achieved 7.657 Mbps
+Average packet took 1.599 ms / achieved 7.507 Mbps
+Average packet took 1.594 ms / achieved 7.526 Mbps
+Average packet took 1.584 ms / achieved 7.577 Mbps
+Average packet took 1.598 ms / achieved 7.509 Mbps
+Average packet took 1.611 ms / achieved 7.449 Mbps
+
+Avg = 7.572
+min = 7.449
+Max = 7.667
+(+- .12 from avg)
+
+SampleRate:
+Average packet took 2.240 ms / achieved 5.358 Mbps
+Average packet took 2.138 ms / achieved 5.612 Mbps
+Average packet took 2.344 ms / achieved 5.119 Mbps
+Average packet took 2.320 ms / achieved 5.173 Mbps
+Average packet took 2.378 ms / achieved 5.046 Mbps
+Average packet took 2.311 ms / achieved 5.193 Mbps
+Average packet took 2.344 ms / achieved 5.120 Mbps
+Average packet took 2.203 ms / achieved 5.448 Mbps
+Average packet took 2.185 ms / achieved 5.492 Mbps
+Average packet took 2.269 ms / achieved 5.288 Mbps
+
+Avg = 5.284
+min = 5.046
+max = 5.612
+(+- .3 from avg)
+
