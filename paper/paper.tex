@@ -44,6 +44,7 @@ pavpan@mit.edu
 %Name Institution
 } % end author
 
+\date{May 2013}
 
 \maketitle
 
@@ -79,6 +80,7 @@ transmission time, Minstrel uses throughput: \begin{equation} T = \frac{p}{tx\_t
 The probability $p$ of a successful transmission is calculated from statistics collected by the \texttt{ProcessFeedback()} method, and is done using an exponential weighted moving average, or EWMA. The EWMA creates a weighted average that weighs recent data more heavily than old data. The weighting for old data decreases exponentially. An EWMA is beneficial because it ensures that a sudden degredation in link quality will create a rapid response in the probabilities due to the increased weight of recent data. Minstrel will waste less time sending packets at a rate that no longer works, as compared to a simple probability calculation.
 
 \begin{table*}[htb]
+  \centering
     \begin{tabular}[htb]{l|l|l|l}
     Try & Normal               & Random (slower than best) & Random (faster than best) \\ \hline
     1   & Best throughput      & Best throughput           & Random                    \\
@@ -103,19 +105,16 @@ At this point, we decided to take a different approach and use an approach simil
 
 \subsection{Trace Collection}
 
+TODO
+
 \begin{figure}[hbt]
   \hspace{-0.5em}\includegraphics[width=3.5in]{bsmt13floorplan.png}\vspace{-0em}
   \caption{We collected most traces at a remote access point in the basement of Building 13 at MIT.}
 \end{figure}
 
-\begin{figure}[htb]
-  \hspace{-.75em}\includegraphics[width=3.5in]{constant.png}\vspace{-0em}
-  \caption{Throughput of using a constant 802.11b/g bitrate in an MIT basement.}
-\end{figure}
-
 \subsection{Testing framework}
 
-Harness.py, etc.
+TODO: Harness.py, etc.
 
 We implemented SampleRate as outlined in John Bicket's Master's thesis~\cite{samplerate}. This implementation is slightly different from how it was implemented in the MadWifi kernel driver. The primary difference is that the kernel implementatiion uses a EWMA instead of a 10 second window. The thesis implmenentation throws out old rate data and begins anew every 10 seconds. It would be worth looking at the performance of EWMA-based SampleRate in the future. 
 
@@ -126,10 +125,28 @@ We implemented Minstrel by porting the C code from the 3.3.8 version of the Linu
 
 \section{Analysis}
 
-Minstrel actually is better than SampleRate (except on short traces). Eit.
+Minstrel and SampleRate perform similarly. Minstrel sometimes has very poor performance on short traces--as low as 2mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled.
+
+\begin{figure}[htb]
+  \hspace{-1em}\includegraphics[width=3.4in]{constant.png}\vspace{-0em}
+  \caption{Throughput of using a constant 802.11b/g bitrate in clear line-of-sight from the access point.}
+\end{figure}
+
+
+\begin{figure}[htb]
+  \hspace{-.75em}\includegraphics[width=3.5in]{MinVSSam1.png}\vspace{-0em}
+  \caption{Throughput of Minstrel and SampleRate on various trace situations.}
+\end{figure}
+
 
 \subsection{Improvements to Minstrel}
 Minproved.
+
+\begin{figure}[htb]
+  \hspace{-2em}\includegraphics[width=3.5in]{mnVSspVSmp1.png}\vspace{-0em}
+  \caption{Throughput of Minproved as compared to SampleRate and vanilla Minstrel.}
+\end{figure}
+
 
 \subsection{Availability}
 All of our code and collected trace data are available on GitHub:
@@ -151,7 +168,9 @@ Finally, we are considering submitting our improvements to the Minstrel algorith
 
 \section{Conclusion}
 
-The end.
+Minstrel and SampleRate perform similarly. The results suggest that SampleRate tends to do slightly better, except in very lossy links such as the client being far awat from the AP or actively moving. Minproved, our improved version of Minstrel, solidly outperforms both Minstrel and SampleRate. 
+
+It seems like the abandonment of SampleRate in the Linux kernel may have been a bit hasty, since it seems to perform similarly to Minstrel and it is a much simpler algorithm and thus less bug prone. We are not sure if there are adjustments to SampleRate that will bring it's performance near Minproved, though. 
 
 \section{Acknowledgements}
 We would like to thank Jonathan Perry and Hari Balikrishnan for their valuable guidance, as well as Derek Smithies for answering our questions about Minstrel. 
