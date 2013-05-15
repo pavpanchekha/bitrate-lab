@@ -82,7 +82,7 @@ The probability $p$ of a successful transmission is calculated from statistics c
 \begin{table*}[htb]
   \centering
     \begin{tabular}[htb]{l|l|l|l}
-    Try & Normal               & Random (slower than best) & Random (faster than best) \\ \hline
+    \textbf{Try} & \textbf{Normal}               & \textbf{Random (slower than best)} & \textbf{Random (faster than best)} \\ \hline
     1   & Best throughput      & Best throughput           & Random                    \\
     2   & Next best throughput & Random                    & Best throughput           \\
     3   & Highest probability  & Highest probability       & Highest probability       \\
@@ -110,6 +110,7 @@ TODO
 \begin{figure}[hbt]
   \hspace{-0.5em}\includegraphics[width=3.5in]{bsmt13floorplan.png}\vspace{-0em}
   \caption{We collected most traces at a remote access point in the basement of Building 13 at MIT.}
+\label{figure:1}
 \end{figure}
 
 \subsection{Testing framework}
@@ -125,26 +126,64 @@ We implemented Minstrel by porting the C code from the 3.3.8 version of the Linu
 
 \section{Analysis}
 
-Minstrel and SampleRate perform similarly. Minstrel sometimes has very poor performance on short traces--as low as 2mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled.
+Minstrel and SampleRate perform similarly, usually within 3 Mbps of each other. In especially noisy situations, such as when the client is moving or when the client is around the corner from the access point, Minstrel consistently outperforms SampleRate. Figure~\ref{figure:3} shows the results of a single run of both Minstrel and SampleRate over all the different types of traces we collected. This is consisten with the literature--the authors of Minstrel noted that they focused on making Minstrel robust to poor conditions~\cite{minstrel}, which means losing potential througput gains in stable situations. Conversely, John Bicket noted that SampleRate performs better in stable situations than noisy or highly varying conditions~\cite{samplerate}. We were slightly surprised to see how significantly SampleRate outperformed Minstrel in certain situations, though, with throughput being up to 67\% higher. 
+
+In Figure~\ref{figure:2} we show the performance of constant bitrates on the \texttt{clear\_1.dat} trace, which is a 35 second trace in clear view of the access point. The optimal rate here was 18 Mbps, which achieved an average throughput of about 15 Mbps. The next highest bitrate, 24 Mbps, shows a large plummet in performance, down to a throughput of 1.17 Mbps. This steep drop is charateristic, and is also talked about in the SampleRate thesis~\cite{samplerate}. It demonstrates just how important bit rate selection is--the optimal bit rate has typically much higher throughput than the next-best rate, but if the algorithm strays too high the results can be devistating. 
+
+Bit rate selection algorithms strive to have a throughput near or greater than the optimal constant rate. For this \texttt{clear\_1.dat} trace, SampleRate clearly meets this goal, achieving an average throughput more than 1 Mbps higher than the optimal constant rate. In noisier situations, though, Minstrel tends to be closer to the optimal constant rate. 
+
+We did notice that Minstrel occasionally has very poor performance on traces 1 seconds or shorter--sometimes as low as 2mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled. Thus it wastes a lot of time sending at non-optimal rates, and a short trace only has a few windows. This behavior does not show up in long traces at all, however, as Minstrel has had time to both smooth out bad windows and collect more statistics (making it less likely to choose a bad rate).
+
+
+Bit rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps
+
+TODO: talk about histograms (table 2)
+
+Some interesting patterns we noticed were that Minstrel had much fewer failures than SampleRate, usually between 0 and 10 for each run. SampleRate usually had one to two thousand failures on 30s. Minstrel's comparative lack of failures is due to the multi-rate retry chain. TODO: finish thought, talk about EWMA weighting problem
 
 \begin{figure}[htb]
   \hspace{-1em}\includegraphics[width=3.4in]{constant.png}\vspace{-0em}
   \caption{Throughput of using a constant 802.11b/g bitrate in clear line-of-sight from the access point.}
+\label{figure:2}
 \end{figure}
 
 
 \begin{figure}[htb]
   \hspace{-.75em}\includegraphics[width=3.5in]{MinVSSam1.png}\vspace{-0em}
   \caption{Throughput of Minstrel and SampleRate on various trace situations.}
+\label{figure:3}
 \end{figure}
 
 
 \subsection{Improvements to Minstrel}
 Minproved.
 
+\begin{table*}[htb]
+    \centering
+    \begin{tabular}{l|l|l|l}
+    \textbf{Rate in Mbps}     & \textbf{SampleRate} & \textbf{Minstrel}   & \textbf{Minproved}   \\ \hline
+    1                & 770        & 39         & 29          \\
+    2                & 298        & 82         & 20          \\
+    5.5              & 5114       & 110        & 805         \\
+    6                & 1412       & 137        & 276         \\
+    9                & 12         & 327        & 57          \\
+    11               & 3480       & 4121       & 3356        \\
+    12               & 4616       & 9515       & 14285       \\
+    18               & 16         & 13295      & 15795       \\
+    24               & 16         & 6909       & 1918        \\
+    36               & 16         & 6944       & 2030        \\
+    48               & 16         & 6888       & 2009        \\
+    54               & 16         & 7308       & 1953        \\ \hline
+    \textbf{Avg. Throughput:} & \emph{5.42 Mbps}  & \emph{7.578 Mbps} & \emph{11.107 Mbps} \\
+    \end{tabular}
+    \caption{Histograms of the number of packets sent at each rate. This trace was recorded around the corner from the access point. The best fixed rate for this trace was 11 Mbps, which achieved a throughput of 9.625 Mbps. Minproved achieves a higher throughput than the best fixed rate.}
+\label{table:2}
+\end{table*}
+
 \begin{figure}[htb]
   \hspace{-2em}\includegraphics[width=3.5in]{mnVSspVSmp1.png}\vspace{-0em}
   \caption{Throughput of Minproved as compared to SampleRate and vanilla Minstrel.}
+\label{figure:4}
 \end{figure}
 
 
