@@ -135,11 +135,13 @@ Bit rate selection algorithms strive to have a throughput near or greater than t
 We did notice that Minstrel occasionally has very poor performance on traces 1 seconds or shorter--sometimes as low as 2mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled. Thus it wastes a lot of time sending at non-optimal rates, and a short trace only has a few windows. This behavior does not show up in long traces at all, however, as Minstrel has had time to both smooth out bad windows and collect more statistics (making it less likely to choose a bad rate).
 
 
-Bit rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps
+Bit rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps. The variation of results on other traces was similar.
 
-TODO: talk about histograms (table 2)
+The histograms of which rates the algorithms deided to send at provided some useful insight into the behavior. Table~\ref{table:2} is a histogram of a 35 second corner trace. In this situation Minstrel outperforms SampleRate. The constant rate throughputs demonstrate that 11, 12 and 18 Mbps were the optimal rates to send at, and that no packets were sucessful at any higher rates. SampleRate does not use these rates except for probe packets, which happens once every ten seconds. Minstrel does not have this measure, however, spends a lot of time sending probe packets at these high rates that happen to never be successful. The only reason low rates have fewer probe packets is because they are second in the retry chain. Despite the fact that SampleRate spends less time probing high rates, it is less successful. This is because Minstrel send the most packets at the three most successful bitrates. SampleRate, however, spends too much time sampling low bit rates. Additionally, it spends a lot of time sending at 5.5 Mbps. TODO: why does SampleRate spend time at 5.5 Mbps??? We suspect that this might be because the equation SampleRate uses to estimate average transmission time needs to be tweaked. 
 
-Some interesting patterns we noticed were that Minstrel had much fewer failures than SampleRate, usually between 0 and 10 for each run. SampleRate usually had one to two thousand failures on 30s. Minstrel's comparative lack of failures is due to the multi-rate retry chain. TODO: finish thought, talk about EWMA weighting problem
+Our examination of the histograms showed us that Minstrel spends a lot of time sampling at high rates. In the specific case we examined, they were all probe packets. But sometimes Minstrel would choose 54Mbps as the rate with the best throughput, which made little sense. A closer investigation revealed that Minstrel would sometimes luck out and get one success sending a probe at 54Mbps. The probability of success would be 1, so then 54Mbps would be chosen as the rate with the best throughput. This is unfortunate, but the real harm came in the next window: nearly all of the packets at 54Mbps would fail, but Minstrel was still considering 54 Mbps to be the best rate! This is because the EWMA did not account for the fact that the second block having sent hunreds more packets at 54 Mbps than the first. Thus the probability of success would drop from 1 to about 0.70, which is still high enough for the throughput equation to rank 54 Mbps highly. In essense, the probabilities were not declining fast enough after a large number of failures at some rate.
+
+In the next section we will talk about Minproved, an improved version of Minstrel where we attempt to fix the probability problem. 
 
 \begin{figure}[htb]
   \hspace{-1em}\includegraphics[width=3.4in]{constant.png}\vspace{-0em}
@@ -149,34 +151,34 @@ Some interesting patterns we noticed were that Minstrel had much fewer failures 
 
 
 \begin{figure}[htb]
-  \hspace{-.75em}\includegraphics[width=3.5in]{MinVSSam1.png}\vspace{-0em}
+  \hspace{-.75em}\includegraphics[width=3.5in]{MinVSSam1.png}\vspace{-0.75em}
   \caption{Throughput of Minstrel and SampleRate on various trace situations.}
 \label{figure:3}
 \end{figure}
 
 
 \subsection{Improvements to Minstrel}
-Minproved.
-
+TODO: Minproved.
+-make sure we mention how Minproved almost always does better than highest fixed rate
 \begin{table*}[htb]
     \centering
-    \begin{tabular}{l|l|l|l}
-    \textbf{Rate in Mbps}     & \textbf{SampleRate} & \textbf{Minstrel}   & \textbf{Minproved}   \\ \hline
-    1                & 770        & 39         & 29          \\
-    2                & 298        & 82         & 20          \\
-    5.5              & 5114       & 110        & 805         \\
-    6                & 1412       & 137        & 276         \\
-    9                & 12         & 327        & 57          \\
-    11               & 3480       & 4121       & 3356        \\
-    12               & 4616       & 9515       & 14285       \\
-    18               & 16         & 13295      & 15795       \\
-    24               & 16         & 6909       & 1918        \\
-    36               & 16         & 6944       & 2030        \\
-    48               & 16         & 6888       & 2009        \\
-    54               & 16         & 7308       & 1953        \\ \hline
+    \begin{tabular}{l|l|l|l|l}
+    \textbf{Rate in Mbps}     & \textbf{SampleRate} & \textbf{Minstrel}   & \textbf{Minproved}   & \textbf{Constant Rate Throughput}\\ \hline
+    1                & 631        & 39         & 29      & 0.639 Mbps    \\
+    2                & 863        & 82         & 20      & 1.425 Mbps    \\
+    5.5              & 4814       & 110        & 805     & 4.406 Mbps    \\
+    6                & 423       & 137        & 276     & 4.603 Mbps    \\
+    9                & 553         & 327        & 57      & 4.630 Mbps   \\
+    11               & 3326       & 4121       & 3356    & 9.627 Mbps   \\
+    12               & 4649       & 9515       & 14285   & 9.444 Mbps   \\
+    18               & 1154         & 13295      & 15795   & 8.458 Mbps    \\
+    24               & 16         & 6909       & 1918    & 0 Mbps   \\
+    36               & 16         & 6944       & 2030    & 0 Mbps   \\
+    48               & 16         & 6888       & 2009    & 0 Mbps   \\
+    54               & 16         & 7308       & 1953    & 0 Mbps   \\ \hline
     \textbf{Avg. Throughput:} & \emph{5.42 Mbps}  & \emph{7.578 Mbps} & \emph{11.107 Mbps} \\
     \end{tabular}
-    \caption{Histograms of the number of packets sent at each rate. This trace was recorded around the corner from the access point. The best fixed rate for this trace was 11 Mbps, which achieved a throughput of 9.625 Mbps. Minproved achieves a higher throughput than the best fixed rate.}
+    \caption{Histograms of the number of packets sent at each rate.  The trace was \texttt{corner\_1.dat} and was recorded around the corner from the access point. The best fixed rate for this trace was 11 Mbps, which achieved a throughput of 9.627 Mbps. Minproved achieves a higher throughput than the best fixed rate.}
 \label{table:2}
 \end{table*}
 
@@ -191,7 +193,7 @@ Minproved.
 All of our code and collected trace data are available on GitHub:
 
 \noindent
-\url{https://github.com/pavpanchekha/6.829-project/tree/3.8.6}
+\small{\url{https://github.com/pavpanchekha/6.829-project/tree/3.8.6}}
 
 This repository contains the modified ath9k driver used to collect the traces, the traces we collected, as well as the Python simulation framework. 
 

@@ -302,6 +302,7 @@ def update_stats(timestamp):
             br.att_hist += br.attempts
             br.ewma.feed(timestamp, p)
         p = br.ewma.read()
+        
 
         if p and (p > 17100 or p < 1800):
             br.adjusted_retry_count = br.retry_count >> 1
@@ -327,7 +328,7 @@ def update_stats(timestamp):
 
     #print("(rate, throughput, probability)")
     #for r in rates_:
-    #    print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3) if r.ewma.read() else None, r.succ_hist, r.att_hist)) 
+    #    print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3) if r.ewma.read() is not None else None, r.succ_hist, r.att_hist)) 
     #print()
 
     nextThruput = rates_[1].rate
