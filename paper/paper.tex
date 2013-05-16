@@ -203,7 +203,7 @@ Very little analysis has been done of the performance of bit rate selection algo
 
 We implemented SampleRate as outlined in the thesis, but the MadWifi implementation has a few key differences from the thesis. We suspect that the MadWifi use of an EWMA instead of a window has more accurate rate statistics, which will potentially lead to better throughput. We did not have the time to implement this alternative version, but it is worth further examination.
 
-Hari Balikrishnan suggested that we use a broadcast approach when collecting our traces, instead of link layer acknowledgements. This would entail having multiple computers listening at the broadcast address, and compiling successes and failures from that information. This approach would free us from certain idiosyncracies of reading data from the driver, and lead to possibly more accurate traces. We were unable to implement this due to a lack of time and ability to acquire compatible hardware.
+Hari Balakrishnan suggested that we use a broadcast approach when collecting our traces, instead of link layer acknowledgements. This would entail having multiple computers listening at the broadcast address, and compiling successes and failures from that information. This approach would free us from certain idiosyncracies of reading data from the driver, and lead to possibly more accurate traces. We were unable to implement this due to a lack of time and ability to acquire compatible hardware.
 
 Finally, we are considering submitting our improvements to the Minstrel algorithm, namely the BEWMA, as a kernel patch. Currently is implemented in Python, so we would have to port the code into C.
 
@@ -214,7 +214,7 @@ Minstrel and SampleRate perform similarly. The results suggest that SampleRate t
 It seems like the abandonment of SampleRate in the Linux kernel may have been a bit hasty, since it seems to perform similarly to Minstrel and it is a much simpler algorithm and thus less bug prone. We are not sure if there are adjustments to SampleRate that will bring it's performance near Minproved, though. 
 
 \section{Acknowledgements}
-We would like to thank Jonathan Perry and Hari Balikrishnan for their valuable guidance, as well as Derek Smithies for answering our questions about Minstrel. 
+We would like to thank Jonathan Perry and Hari Balakrishnan for their valuable guidance, as well as Derek Smithies for answering our questions about Minstrel. 
 
 
 {\footnotesize \bibliographystyle{acm}
