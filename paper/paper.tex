@@ -519,11 +519,11 @@ capabilities.  There is an 802.11n version of Minstrel, but there is no
 implementation of SampleRate.
 
 We implemented SampleRate as outlined in the thesis, but the MadWifi
-implementation has a few key differences from the thesis. MadWifi 
-use of an EWMA instead of a window has more accurate
-rate statistics, which will potentially lead to better throughput. We
-did not have the time to implement this alternative version, but it is
-worth further examination.
+implementation has a few key differences from the thesis.  MadWifi use
+of an EWMA instead of a window has more accurate rate statistics,
+which will potentially lead to better throughput.  We did not have the
+time to implement this alternative version, but it is worth further
+examination.
 
 Hari Balakrishnan suggested that we use a broadcast approach when
 collecting our traces, instead of link layer acknowledgments.  This
