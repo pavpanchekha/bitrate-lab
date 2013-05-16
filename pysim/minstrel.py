@@ -176,7 +176,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
     #if randint(1,100) <= 10:
-    delta = (npkts*.1 - np + nd/2.0)
+    delta = (npkts*.1 - (np + nd/2.0))
     if delta  > 0: #random!
         #Analysis of information showed that the system was sampling too hard
         #at some rates. For those rates that never work (54mb, 500m range) 
