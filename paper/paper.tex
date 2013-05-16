@@ -26,6 +26,7 @@
 
 %\usepackage{endnotes}
 \begin{document}
+
 %don't want date printed
 
 %make title bold and 14 pt font (Latex default is non-bold, 16 pt)
@@ -64,7 +65,7 @@ The two most popular frame-based protocols are SampleRate and Minstrel. Both wer
 This paper will provide a general overview of SampleRate and Minstrel. We then discuss our testing methodology. We compare the performance of the two algorithms, and then discuss modifications we made to Minstrel and compare it's performance to the current kernel implementation.
 \section{SampleRate}
 
-SampleRate has three main functions: \texttt{ApplyRate()}, which returns a the bit-rate to send a packet at, \texttt{ProcessFeedback()}, which updates the statistics for a bit-rate after an attempted packet send,  and \texttt{RemoveStaleResults()}, which removes all statistics older than 10 seconds.
+SampleRate has three main functions: \texttt{ApplyRate()}, which returns a the bit-rate to send a packet at, \texttt{ProcessFeedback()}, which updates the statistics for a bitrate after an attempted packet send,  and \texttt{RemoveStaleResults()}, which removes all statistics older than 10 seconds.
 
 SampleRate sends at the rate with the lowest average transmission time. Every ten packets, it sends out a sample packet at a random rate that has a smaller predicted transmission time than the current rate. SampleRate updates its transmission time estimates every ten seconds based on feedback from the card about which packets succeeded and at which rate they were sent. If the current best rate experiences four successive failures, SampleRate stops using that rate. 
 
@@ -135,23 +136,27 @@ In SampleRate, the number of successive retries, the frequency of probe packets,
 
 In Minstrel, the frequency of probe packets, the window size, and the EWMA weighting are the adjustable parameters. The 3.3.8 Linux kernel uses a probe frequency of 10\%, a window size of 100ms, and a EWMA weighting of 0.75. We use the same values. Additionally, Minstrel also estimates $tx\_time$ using the \texttt{ieee80211\_frame\_duration()} method from the \texttt{util.c} file in \texttt{net/mac80211}. We implemented the same function in Python.
 
-\section{Analysis}
 
-Minstrel and SampleRate perform similarly, usually within 3 Mbps of each other. In especially noisy situations, such as when the client is moving or when the client is around the corner from the access point, Minstrel consistently outperforms SampleRate. Figure~\ref{figure:3} shows the results of a single run of both Minstrel and SampleRate over all the different types of traces we collected. This is consistent with the literature---the authors of Minstrel noted that they focused on making Minstrel robust to poor conditions~\cite{minstrel}, which means losing potential throughput gains in stable situations. Conversely, John Bicket noted that SampleRate performs better in stable situations than noisy or highly varying conditions~\cite{samplerate}. We were slightly surprised to see how significantly SampleRate outperformed Minstrel in certain situations, sometimes with throughput as much as 67\% higher. 
+\section{Analysis} \label{sec:analysis}
 
-In Figure~\ref{figure:2} we show the performance of constant bit-rates on the \texttt{clear\_1.dat} trace, which is a 35 second trace in clear view of the access point. The optimal constant rate here was 18 Mbps, which achieved an average throughput of about 15 Mbps. The next highest bit-rate, 24 Mbps, shows a large plummet in performance, down to a throughput of 1.17 Mbps. This steep drop is characteristic, and is also talked about in the SampleRate thesis~\cite{samplerate}. It demonstrates just how important bit-rate selection is---the optimal bit-rate has typically much higher throughput than the next-best rate, but if the algorithm strays too high the results can be devastating. 
+Minstrel and SampleRate perform similarly, usually within 3 Mbps of each other. In especially noisy situations, such as when the client is moving or when the client is around the corner from the access point, Minstrel consistently outperforms SampleRate. Figure~\ref{figure:3} shows the results of a single run of both Minstrel and SampleRate over all the different types of traces we collected. This is consisten with the literature---the authors of Minstrel noted that they focused on making Minstrel robust to poor conditions~\cite{minstrel}, which means losing potential througput gains in stable situations. Conversely, John Bicket noted that SampleRate performs better in stable situations than noisy or highly varying conditions~\cite{samplerate}. We were slightly surprised to see how significantly SampleRate outperformed Minstrel in certain situations, though, with throughput being up to $67\%$ higher. 
+
+In Figure~\ref{figure:2} we show the performance of constant bitrates on the \texttt{clear\_1.dat} trace, which is a 35 second trace in clear view of the access point. The optimal rate here was 18 Mbps, which achieved an average throughput of about 15 Mbps. The next highest bitrate, 24 Mbps, shows a large plummet in performance, down to a throughput of 1.17 Mbps. This steep drop is charateristic, and is also talked about in the SampleRate thesis~\cite{samplerate}. It demonstrates just how important bit rate selection is---the optimal bit rate has typically much higher throughput than the next-best rate, but if the algorithm strays too high the results can be devastating. 
+
+Bit rate selection algorithms strive to have a throughput near or greater than the optimal constant rate. For this \texttt{clear\_1.dat} trace, SampleRate clearly meets this goal, achieving an average throughput more than 1 Mbps higher than the optimal constant rate. In noisier situations, though, Minstrel tends to be closer to the optimal constant rate. 
 
 We did notice that Minstrel occasionally has very poor performance on traces 1 seconds or shorter---sometimes as low as 2 Mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled. Thus it wastes a lot of time sending at non-optimal rates; and a short trace has only a few 100ms windows. This behavior is not evident in long traces, however, as Minstrel has had time to both smooth out bad windows and collect more statistics (making it less likely to choose a bad rate).
 
-Bit-rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps. The variation of results on other traces was similar.
 
-Additionally, Minstrel uses a complex method of calculating when to send a sample packet that involves a heuristic to make sure that 10\% of packets were actually samples. This is because the mrr places sample packets second in the retry chain when the sample rate is slower than the rate with the best throughput. So even if 10\% of probes have a sample rate in the retry chain, a sample rate isn't actually sent 10\% of the time. We implemented this heuristic and it tended to cause Minstrel to send too many probe packets.
+Bit rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps. The variation of results on other traces (except the very short traces, where variance was naturally higher) was similar.
 
-In the next section we will talk about Minproved, an improved version of Minstrel where we attempt to fix problems with EWMA and too-frequent probing
+The histograms of which rates the algorithms decided to send at provided some useful insight into their behavior. Table~\ref{table:2} is a histogram of a 35 second corner trace. In this situation Minstrel outperforms SampleRate. The constant rate throughputs demonstrate that 11, 12 and 18 Mbps were the optimal rates to send at, and that no packets were sucessful at any higher rates. SampleRate does not use these rates except for probe packets, which happens once every ten seconds. Minstrel, since it does not terminate transmission after four successive failures, spends a lot of time sending probe packets at these high rates, which are never successful. The only reason low rates have fewer probe packets is because Minstrel explicitly places them second in the retry chain, and because the main rate usually succeeds. Despite the fact that SampleRate spends less time probing high rates, it is less successful. This is because Minstrel send the most packets at the three most successful bitrates. SampleRate, however, spends too much time sampling low bit rates. Additionally, it spends a lot of time sending at 5.5 Mbps. TODO: why does SampleRate spend time at 5.5 Mbps??? We suspect that this might be because the equation SampleRate uses to estimate average transmission time needs to be tweaked. 
+
+Our examination of the histograms showed us that Minstrel spends a lot of time sampling at high rates. In the specific case we examined, they were all probe packets. But sometimes Minstrel would choose 54Mbps as the rate with the best throughput, which made little sense. A closer investigation revealed that Minstrel would sometimes get lucky with a successful probe at 54Mbps. The probability of success would be 1, so then 54Mbps would be chosen as the rate with the best throughput. This is unfortunate, but the real harm comes in the next window: packets would now be send at 54Mbps, and nearly all would fail.  However, since these hundreds of failed packets weight equally with the single successful probe packet, Minstrel still considers 54 Mbps the best rate. Thus the probability of success might drop from 1 to about 0.70, which is still high enough for the throughput equation to rank 54 Mbps highly. Fundamentally, the problem is that the EWMA does not account the second block having hundreds more packets than the first.  In the next section we will talk about Minproved, an improved version of Minstrel where we attempt to fix this problem. 
 
 \begin{figure}[htb]
   \hspace{-1em}\includegraphics[width=3.4in]{constant.png}\vspace{-0em}
-  \caption{Throughput of using a constant 802.11b/g bit-rate in clear line-of-sight from the access point.}
+  \caption{Throughput of using a constant 802.11b/g bitrate in clear line-of-sight from the access point.}
 \label{figure:2}
 \end{figure}
 
@@ -163,9 +168,20 @@ In the next section we will talk about Minproved, an improved version of Minstre
 \end{figure}
 
 
-\subsection{Improvements to Minstrel}
-TODO: Minproved.
--make sure we mention how Minproved almost always does better than highest fixed rate
+\section{Improvements to Minstrel}
+
+In Section~\ref{sec:analysis}, we noted that the EWMA used by Minstrel causes problems when probe packets succeed.  A natural next step was to modify Minstrel to avoid this problem, by weighing each 100ms block of statistics in proportion to how many packets it contains.  To preserve the exponential weighing of statistics, we chose to weigh each 100ms block based on the number of packets sent, compared to the those sent in the average block.  Parameters were chosen so that if all blocks were of average size, our ``balanced'' EWMA would behave identically to a normal EWMA.
+
+To achieve, this weighing, we first recast the usual EWMA algorithm.  The usual algorithm computes $$p \gets \alpha p + (1 - \alpha) \frac{n_i}{d_i}),$$ where $p$ is the EWMA probability, $\alpha$ is a weight factor equal to $0.75$ in Minstrel, and $n_i$ and $d_i$ are the number of successful and total packets in the 100ms window.  We next write this as $$p \gets \frac{\beta p + \frac{n_i}{d_i}}{\beta + 1},$$ where $\beta = \alpha / (1 - \alpha)$.  We can now change the factor in front of $n_i / d_i$ to account for the total number of packets sent.  In our case, we chose to compute $$p \gets \frac{\beta p + w_i \frac{n_i}{d_i}}{\beta + w_i},$$ where the weight $w_i$ is $d_i / (d / b)$, with $d$ the total number of packets ever send and $b$ the total number of 100ms windows ever seen.  Then $d / b$ is the average number of packets per window and $d_i / (d / b)$ is the ratio between the current window and the average window.  Note that if the current window is of average size, this is exactly equal to the usual EWMA result.  Finally, we can simplify the above equation to $$S p \gets \frac{\beta \frac{d}{b} p + S n_i}{\beta \frac{d}{b} + d_i},$$ where $S$ is any constant.  This equation is usable in fixed-precision arithmetic, making it simple to implement in the Linux kernel (which prefers to avoid floating point computations for portability reasons).  Because packets are high rates rarely succeed, the average window size is a few packets; thus, the main qualitative difference between our balanced EWMA and the original Minstrel EWMA is that non-probe packets at probe bit-rates are weighed extraordinarily heavily, and this fact allows us to avoid multiple failing 100ms windows.
+
+We tested a modified Minstrel which used this more balanced EWMA algorithm on the same traces as Minstrel and SampleRate, and found a consistent improvement of approximately 1 Mbps over the normal Minstrel algorithm.
+
+We noted another curious fact about Minstrel: the kernel implementation of Minstrel samples rates very frequently.  This is due to a flag the kernel uses to track which probe bit-rates were actually sampled.  In cases where the probe packets are at a lower bit-rate than the current bit-rate, the probe packets might never be sent if the current bit-rate succeeds.  However, the flagging seems to misbehave in certain cases, causing the extremely aggressive probing we see in some traces.  For example, in one of the traces where the client was around a corner from the access point, Minstrel sent almost half of its packets at probe frequencies.  We modified Minstrel to be less aggressive with probe packets, decreasing the sampling frequency to approximately 10\%.  This lead to more improvement, especially on noisy traces such as the cases where the client was around a corner or moving.
+
+Overall, our improved Minstrel, which we call Minproved, often out-performs Minstrel by multiple Mbps and never doing any worse; and usually surpassing the best constant bit rate.  In only one case did SampleRate achieve higher throughput than Minproved, and in this case both surpassed the best constant bit-rate.  In cases where Minstrel out-performed SampleRate, the same behavior was true of Minproved.  In most cases, Minproved was $30\%$ faster than Minstrel, and in some the improvement as great as $60\%$.
+
+However, Minproved still makes many poor choices.  While a single successful probe packet does not cause many hundreds of milliseconds of failed packets, as it does in Minstrel, the single successful packet can still cause one window's worth of failed packets.  Instead, it would be best if a successful probe packet at a rarely-successful bit-rate was treated more carefully.  One can imagine an algorithm, for example, which would treat a single successful probe packet as a reason to send a dozen 
+
 \begin{table*}[htb]
     \centering
     \begin{tabular}{l|l|l|l|l}
@@ -215,7 +231,7 @@ Finally, we are considering submitting our improvements to the Minstrel algorith
 
 \section{Conclusion}
 
-Minstrel and SampleRate perform similarly. The results suggest that SampleRate tends to do slightly better, except in very lossy links such as the client being far away from the AP or actively moving. Minproved, our improved version of Minstrel, solidly outperforms both Minstrel and SampleRate. 
+Minstrel and SampleRate perform similarly. The results suggest that SampleRate tends to do slightly better, except in very lossy links such as the client being far awat from the AP or actively moving. Minproved, our improved version of Minstrel, solidly outperforms both Minstrel and SampleRate. 
 
 It seems like the abandonment of SampleRate in the Linux kernel may have been a bit hasty, since it seems to perform similarly to Minstrel and it is a much simpler algorithm and thus less bug prone. We are not sure if there are adjustments to SampleRate that will bring it's performance near Minproved, though. 
 
