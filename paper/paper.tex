@@ -124,15 +124,23 @@ We implemented SampleRate as outlined in John Bicket's Master's thesis~\cite{sam
 We implemented Minstrel by porting the C code from the 3.3.8 version of the Linux kernel into Python. \texttt{minstrel.py} contains \texttt{ApplyRate()}, \texttt{ProcessFeedback()} and  \texttt{UpdateStats()}, as well as a few helper functions and data structures for tracking rate statistics. 
 
 
+\subsection{Experimental parameters}
+
+There are a few parameters that can be adjusted in Minstrel and SampleRate, but our implementation is consistent with what the respective authors originally chose. 
+
+In SampleRate, the number of successive retries, the frequency of probe packets, the window size, and the lossless $tx\_time$ estimations are all parameters that can be changed. The SampleRate thesis chose 4 successive retries, a probe frequency of every ten packets, and a window size of ten seconds. We used the same values in our implementation. Additionally, we use the same equation to calculate $tx\_time$i.
+
+In Minstrel, the frequency of probe packets, the window size, and the EWMA weighting are the adjustable parameters. The 3.3.8 Linux kernel uses a probe frequency of 10\%, a window size of 100ms, and a EWMA weighing of 0.75. We use the same values. Additionally, Minstrel also estimates $tx\_time$ using the \texttt{ieee80211\_frame\_duration()} method from the \texttt{util.c} file in \texttt{net/mac80211}. We implemented the same function in Python.
+
 \section{Analysis}
 
-Minstrel and SampleRate perform similarly, usually within 3 Mbps of each other. In especially noisy situations, such as when the client is moving or when the client is around the corner from the access point, Minstrel consistently outperforms SampleRate. Figure~\ref{figure:3} shows the results of a single run of both Minstrel and SampleRate over all the different types of traces we collected. This is consisten with the literature--the authors of Minstrel noted that they focused on making Minstrel robust to poor conditions~\cite{minstrel}, which means losing potential througput gains in stable situations. Conversely, John Bicket noted that SampleRate performs better in stable situations than noisy or highly varying conditions~\cite{samplerate}. We were slightly surprised to see how significantly SampleRate outperformed Minstrel in certain situations, though, with throughput being up to 67\% higher. 
+Minstrel and SampleRate perform similarly, usually within 3 Mbps of each other. In especially noisy situations, such as when the client is moving or when the client is around the corner from the access point, Minstrel consistently outperforms SampleRate. Figure~\ref{figure:3} shows the results of a single run of both Minstrel and SampleRate over all the different types of traces we collected. This is consisten with the literature---the authors of Minstrel noted that they focused on making Minstrel robust to poor conditions~\cite{minstrel}, which means losing potential througput gains in stable situations. Conversely, John Bicket noted that SampleRate performs better in stable situations than noisy or highly varying conditions~\cite{samplerate}. We were slightly surprised to see how significantly SampleRate outperformed Minstrel in certain situations, though, with throughput being up to 67\% higher. 
 
-In Figure~\ref{figure:2} we show the performance of constant bitrates on the \texttt{clear\_1.dat} trace, which is a 35 second trace in clear view of the access point. The optimal rate here was 18 Mbps, which achieved an average throughput of about 15 Mbps. The next highest bitrate, 24 Mbps, shows a large plummet in performance, down to a throughput of 1.17 Mbps. This steep drop is charateristic, and is also talked about in the SampleRate thesis~\cite{samplerate}. It demonstrates just how important bit rate selection is--the optimal bit rate has typically much higher throughput than the next-best rate, but if the algorithm strays too high the results can be devistating. 
+In Figure~\ref{figure:2} we show the performance of constant bitrates on the \texttt{clear\_1.dat} trace, which is a 35 second trace in clear view of the access point. The optimal rate here was 18 Mbps, which achieved an average throughput of about 15 Mbps. The next highest bitrate, 24 Mbps, shows a large plummet in performance, down to a throughput of 1.17 Mbps. This steep drop is charateristic, and is also talked about in the SampleRate thesis~\cite{samplerate}. It demonstrates just how important bit rate selection is---the optimal bit rate has typically much higher throughput than the next-best rate, but if the algorithm strays too high the results can be devistating. 
 
 Bit rate selection algorithms strive to have a throughput near or greater than the optimal constant rate. For this \texttt{clear\_1.dat} trace, SampleRate clearly meets this goal, achieving an average throughput more than 1 Mbps higher than the optimal constant rate. In noisier situations, though, Minstrel tends to be closer to the optimal constant rate. 
 
-We did notice that Minstrel occasionally has very poor performance on traces 1 seconds or shorter--sometimes as low as 2mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled. Thus it wastes a lot of time sending at non-optimal rates, and a short trace only has a few windows. This behavior does not show up in long traces at all, however, as Minstrel has had time to both smooth out bad windows and collect more statistics (making it less likely to choose a bad rate).
+We did notice that Minstrel occasionally has very poor performance on traces 1 seconds or shorter---sometimes as low as 2 Mbps. This is because it does not stop sending after four successive failures, but must wait until the end of the 100ms window for statistics to be compiled. Thus it wastes a lot of time sending at non-optimal rates, and a short trace only has a few windows. This behavior does not show up in long traces at all, however, as Minstrel has had time to both smooth out bad windows and collect more statistics (making it less likely to choose a bad rate).
 
 
 Bit rate selection algorithms naturally show variation between runs on the same data because probe rates are chosen randomly. The variations were small, though. On ten runs on the \texttt{clear\_1.dat} trace, the average of Minstrel over 10 runs was 7.52 Mbps, with a maximum variation of +/- 0.12 Mbps. SampleRate was similarly stable, it averaged 5.284 Mbps over 10 runs, with a maximum variation of about +/- 0.3 Mbps. The variation of results on other traces was similar.
@@ -193,7 +201,7 @@ TODO: Minproved.
 All of our code and collected trace data are available on GitHub:
 
 \noindent
-\small{\url{https://github.com/pavpanchekha/6.829-project/tree/3.8.6}}
+{\small\url{https://github.com/pavpanchekha/6.829-project/tree/3.8.6}}
 
 This repository contains the modified ath9k driver used to collect the traces, the traces we collected, as well as the Python simulation framework. 
 
