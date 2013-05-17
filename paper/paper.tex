@@ -16,14 +16,14 @@
 \maketitle
 
 \begin{abstract}
-We compare the performance SampleRate and Minstrel, two popular
-bit rate selection algorithms that have widespread real-world usage.
-We use a trace-based approach to avoid kernel programming and consider
-Python implementations of both SampleRate and Minstrel.  We test both
-algorithms in multiple real-world scenarios, including scenarios with
-mobile clients and noisy environments, to highlight differences
-between the two algorithms.  We also introduce improvements to the
-Minstrel algorithm that allow for significant gains in throughput.
+We compare the performance SampleRate and Minstrel, two popular bit
+rate selection algorithms that have widespread real-world usage.  We
+use a trace-based approach to avoid kernel programming and improve
+reproducibility and allow analysis.  We test both algorithms in
+multiple real-world scenarios, including scenarios with mobile clients
+and noisy environments, to highlight differences between the two.  We
+also introduce improvements to the Minstrel algorithm that allow for
+significant gains in throughput.
 \end{abstract}
 
 \section{Introduction}
@@ -614,16 +614,16 @@ moving.  Minproved, our improved version of Minstrel, solidly
 outperforms both Minstrel and SampleRate.
 
 It seems that the replacement of SampleRate in the Linux kernel may
-have been a hasty, since it performs similarly or better than Minstrel 
-and in most situations and is a much simpler algorithm, and thus simpler
- to adapt to changing wireless standards.  We are not sure if 
-adjustments to SampleRate can bring its performance to match that of 
-Minproved, however.
+have been hasty, since it performs similarly to Minstrel in many
+situations and in most situations and is a much simpler algorithm, and
+thus easier to adapt to changing wireless standards.  We are not sure
+if adjustments to SampleRate can bring its performance to match that
+of Minproved, however.
 
 \section*{Acknowledgments} \label{sec:acknowledgments}
 
-We would like to thank Jonathan Perry and Hari Balakrishnan for their
-valuable guidance, as well as Derek Smithies for answering our
+We would like to thank Jonathan~Perry and Hari~Balakrishnan for their
+valuable guidance, as well as Derek~Smithies for answering our
 questions about Minstrel.
 
 \bibliographystyle{acm}
