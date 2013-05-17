@@ -136,7 +136,7 @@ based on an exponentially-weighted moving average of 100ms windows.
 Minstrel makes use the multi-rate retry chain (MRR), an array of bit rates
 and number of attempts to make at each bit rate, that tells the card
 which rates to try before reporting a failure.  The retry chain makes
-failures extremely unlikely and allows Minstrel to choose fallback
+failures extremely unlikely and allows Minstrel to choose fall-back
 rates when a packet does not succeed.  Minstrel sets the MRR to first
 try the rate with the highest throughput, then the next-highest
 throughput, then greatest probability of success, and finally attempts
@@ -300,7 +300,7 @@ checked by both authors.
 We implemented SampleRate as outlined in John Bicket's Master's
 thesis~\cite{samplerate}.  This implementation is slightly different
 from how it was implemented in the MadWifi kernel driver.  The primary
-difference is that the kernel implementatiion uses a EWMA, while the
+difference is that the kernel implementation uses a EWMA, while the
 thesis implementation computes average transmission times based on a
 10-second sliding window.  It would be worth looking at the
 performance of EWMA-based SampleRate in the future.  Our
@@ -346,9 +346,9 @@ is moving or when the client is around the corner from the access
 point, Minstrel consistently outperforms SampleRate.
 Figure~\ref{figure:3} shows the results of a single run of both
 Minstrel and SampleRate over all the different types of traces we
-collected.  This is consisten with the literature---the authors of
+collected.  This is consistent with the literature---the authors of
 Minstrel noted that they focused on making Minstrel robust to poor
-conditions~\cite{minstrel}, which means losing potential througput
+conditions~\cite{minstrel}, which means losing potential throughput
 gains in stable situations.  Conversely, John Bicket noted that
 SampleRate performs better in stable situations than noisy or highly
 varying conditions~\cite{samplerate}.  We were slightly surprised to
@@ -377,7 +377,7 @@ on the \texttt{clear\_1.dat} trace, which is a 35 second trace in
 clear view of the access point.  The optimal rate here was 18 Mbps,
 which achieved an average throughput of about 15 Mbps.  The next
 highest bit rate, 24 Mbps, shows a large plummet in performance, down
-to a throughput of 1.17 Mbps.  This steep drop is charateristic, and
+to a throughput of 1.17 Mbps.  This steep drop is characteristic, and
 is also talked about in the SampleRate thesis~\cite{samplerate}.  It
 demonstrates just how important bit rate selection is---the optimal
 bit rate has typically much higher throughput than the next-best rate,
@@ -404,7 +404,7 @@ provided some useful insight into their behavior.  Table~\ref{table:2}
 is a histogram of a 35 second corner trace.  In this situation
 Minstrel outperforms SampleRate.  The constant rate throughputs
 demonstrate that 11, 12 and 18 Mbps were the optimal rates to send at,
-and that no packets were sucessful at any higher rates.  SampleRate
+and that no packets were successful at any higher rates.  SampleRate
 does not use these rates except for probe packets, which happens once
 every ten seconds.  Minstrel, since it does not terminate transmission
 after four successive failures, spends a lot of time sending probe
@@ -422,13 +422,13 @@ average transmission time needs to be tweaked.
 
 Our examination of the histograms showed us that Minstrel spends a lot
 of time sampling at high rates.  In the specific case we examined, they
-were all probe packets.  But sometimes Minstrel would choose 54Mbps as
+were all probe packets.  But sometimes Minstrel would choose 54 Mbps as
 the rate with the best throughput, which made little sense.  A closer
 investigation revealed that Minstrel would sometimes get lucky with a
-successful probe at 54Mbps.  The probability of success would be 1, so
-then 54Mbps would be chosen as the rate with the best throughput.  This
+successful probe at 54 Mbps.  The probability of success would be 1, so
+then 54 Mbps would be chosen as the rate with the best throughput.  This
 is unfortunate, but the real harm comes in the next window: packets
-would now be send at 54Mbps, and nearly all would fail.  However,
+would now be send at 54 Mbps, and nearly all would fail.  However,
 since these hundreds of failed packets weight equally with the single
 successful probe packet, Minstrel still considers 54 Mbps the best
 rate.  Thus the probability of success might drop from 1 to about 0.70,
