@@ -19,5 +19,4 @@ while True:
     PREFIX = "Seq {}\n".format(i).encode("utf-8")
     MESSAGE = PREFIX + bytes(random.randint(0, 255) for i in range(MESSAGE_LEN - len(PREFIX)))
     sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
-    print(PREFIX)
     i += 1
