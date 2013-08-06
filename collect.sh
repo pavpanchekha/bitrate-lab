@@ -31,7 +31,7 @@ echo "Capture done"
 kill %python
 
 echo "Check: all numbers from 0 to 11 appear in the right hand column:"
-util/packets.sh "../raw/$FILE.trace"
+util/packets.sh "raw/$FILE.trace"
 
 echo "Munging data"
-python util/munge.py <"../raw/$FILE.trace" "data/$FILE.dat"
+python util/munge.py <"raw/$FILE.trace" "data/$FILE.dat"
