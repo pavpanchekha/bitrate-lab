@@ -6,7 +6,7 @@ SEC=$3
 ITER=$((2*SEC))
 
 echo "Reprobing wifi driver (this may take a while)"
-./reprobe.sh
+sudo ./reprobe.sh
 echo "Starting packet spew"
 python ./spew.py "$PORT" &
 
@@ -16,10 +16,10 @@ cat /proc/ath_rate >/dev/null
 echo "Starting capture"
 cat /proc/ath_rate
 
-while [ ITER -ne 0 ]; do
+while [ $ITER -ne 0 ]; do
     cat /proc/ath_rate
     sleep .5
-    ITER=$((ITER-1))
+    ITER=$((ITER - 1))
 done | tee "$FILE"
 
 echo "Capture done"
