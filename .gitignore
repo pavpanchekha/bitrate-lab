@@ -4,3 +4,6 @@
 *.mod.c
 *.pyc
 __pycache__
+paper/*.aux
+paper/*.bbl
+paper/*.ent
