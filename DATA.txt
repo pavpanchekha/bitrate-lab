@@ -8,11 +8,11 @@ The folders `raw` and `data` contain captured bitrate traces.
 Capturing traces
 ----------------
 
-Traces can be captured with `util/collect.sh`.  This script restarts the driver, starts a packet-spewing script, captures a trace, and kills the packet source.  It has three arguments: an IP address to spew packets at, a file name to write the trace to, and how long to record the trace for.  For example
+Traces can be captured with `collect.sh`.  This script restarts the driver, starts a packet-spewing script, captures a trace, and kills the packet source.  It has three arguments: an IP address to spew packets at, a file name to write the trace to, and how long to record the trace for.  For example
 
-    ./collect.sh 10.0.0.1 /tmp/test.trace 60
+    ./collect.sh 10.0.0.1 test 60
 
-would capture a 60-second trace to `/tmp/test.trace`, while sending a deluge of packets toward `10.0.0.1`.
+would capture a 60-second trace to `raw/test.trace`, while sending a deluge of packets toward `10.0.0.1`.
 
 Files `raw/*.trace`
 -------------------

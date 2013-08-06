@@ -5,10 +5,15 @@ FILE=$2
 SEC=$3
 ITER=$((2*SEC))
 
+if [ -f "raw/$FILE.trace" -o "$FILE" = "test"]; do
+    echo "File 'raw/$FILE.trace' already exists; will not overwrite"
+    exit 1
+done
+
 echo "Reprobing wifi driver (this may take a while)"
-sudo ./reprobe.sh
+sudo util/reprobe.sh
 echo "Starting packet spew"
-python ./spew.py "$PORT" &
+python util/spew.py "$PORT" &
 
 # Clear the stored buffer
 cat /proc/ath_rate >/dev/null
@@ -20,10 +25,13 @@ while [ $ITER -ne 0 ]; do
     cat /proc/ath_rate
     sleep .5
     ITER=$((ITER - 1))
-done | tee "$FILE"
+done | tee "raw/$FILE.trace"
 
 echo "Capture done"
 kill %python
 
 echo "Check: all numbers from 0 to 11 appear in the right hand column:"
-./packets.sh "$FILE"
+util/packets.sh "../raw/$FILE.trace"
+
+echo "Munging data"
+python util/munge.py <"../raw/$FILE.trace" "data/$FILE.dat"
