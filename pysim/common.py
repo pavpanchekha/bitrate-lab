@@ -35,8 +35,12 @@ RATES = [
 ]
 
 def ieee80211_to_idx(mbps):
-    return [i for i, rate in enumerate(RATES)
+    opts = [i for i, rate in enumerate(RATES)
             if rate.dot11_rate == int(round(2 * mbps))]
+    if opts:
+        return opts[0]
+    else:
+        raise ValueError("No bitrate with throughput {} Mbps exists".format(mbps))
 
 
 class EWMA:

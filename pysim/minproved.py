@@ -1,8 +1,6 @@
 # Colleen Josephson, 2013
 # This file attempts to implement the minstrel rate control algorithm
 
-# TODO : seed 1466742691193015552
-
 from random import randint
 from random import choice 
 import common
@@ -191,13 +189,13 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
             random = choice(list(rates))
 
         if random < bestThruput:
-            r = [(ieee80211_to_idx(bestThruput)[0],
+            r = [(ieee80211_to_idx(bestThruput),
                      rates[bestThruput].adjusted_retry_count),
-                    (ieee80211_to_idx(random)[0],
+                    (ieee80211_to_idx(random),
                      rates[random].adjusted_retry_count), 
-                    (ieee80211_to_idx(bestProb)[0],
+                    (ieee80211_to_idx(bestProb),
                      rates[bestProb].adjusted_retry_count), 
-                    (ieee80211_to_idx(lowestRate)[0],
+                    (ieee80211_to_idx(lowestRate),
                      rates[lowestRate].adjusted_retry_count)]
         else:
             #TODO: understand the corresponding kernel code more 
@@ -206,23 +204,23 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                 if rates[random].sample_limit > 0:
                     rates[random].sample_limit -= 1
             
-            r = [(ieee80211_to_idx(random)[0],
+            r = [(ieee80211_to_idx(random),
                       rates[random].adjusted_retry_count), 
-                    (ieee80211_to_idx(bestThruput)[0],
+                    (ieee80211_to_idx(bestThruput),
                      rates[bestThruput].adjusted_retry_count),
-                    (ieee80211_to_idx(bestProb)[0],
+                    (ieee80211_to_idx(bestProb),
                      rates[bestProb].adjusted_retry_count), 
-                    (ieee80211_to_idx(lowestRate)[0],
+                    (ieee80211_to_idx(lowestRate),
                      rates[lowestRate].adjusted_retry_count)]
     
     else:     #normal
-        r = [(ieee80211_to_idx(bestThruput)[0],
+        r = [(ieee80211_to_idx(bestThruput),
               rates[bestThruput].adjusted_retry_count), 
-             (ieee80211_to_idx(nextThruput)[0],
+             (ieee80211_to_idx(nextThruput),
               rates[nextThruput].adjusted_retry_count), 
-             (ieee80211_to_idx(bestProb)[0],
+             (ieee80211_to_idx(bestProb),
               rates[bestProb].adjusted_retry_count), 
-             (ieee80211_to_idx(lowestRate)[0],
+             (ieee80211_to_idx(lowestRate),
               rates[lowestRate].adjusted_retry_count)]
     return r
         

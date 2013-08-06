@@ -21,7 +21,7 @@ backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5
            18:5115, 19:5115, 20:5115}
 
 def bitrate_type(bitrate):
-    return common.RATES[ieee80211_to_idx(bitrate)[0]].phy
+    return common.RATES[ieee80211_to_idx(bitrate)].phy
 
 
 
@@ -113,7 +113,7 @@ def apply_rate(cur_time):
         for i, r in sorted(rates.items(), reverse=True):
             if r.succFails < 4:
                 currRate = r.rate
-                return [(ieee80211_to_idx(currRate)[0], NRETRIES)]
+                return [(ieee80211_to_idx(currRate), NRETRIES)]
 
     # Every 10 packets, select a random non-failing bit rate w/ better avg tx
     #"If the number of packets sent over the link is a multiple of ten,"
@@ -129,11 +129,11 @@ def apply_rate(cur_time):
 
         if len(eligible) > 0:
             sampleRate = choice(eligible).rate #select random rate from eligible
-            return [(ieee80211_to_idx(sampleRate)[0], NRETRIES)]
+            return [(ieee80211_to_idx(sampleRate), NRETRIES)]
 
     #"Otherwise, send packet at the bit-rate that has the lowest avg transmission time"
     # Trusts that currRate is properly maintained to be lowest avgTX
-    return [(ieee80211_to_idx(currRate)[0], NRETRIES)]
+    return [(ieee80211_to_idx(currRate), NRETRIES)]
 
 
 #"When process f eedback() runs, it updates information that tracks
