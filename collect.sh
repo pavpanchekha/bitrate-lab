@@ -5,7 +5,7 @@ FILE=$2
 SEC=$3
 ITER=$((2*SEC))
 
-if [ -f "raw/$FILE.trace" -o "$FILE" = "test"]; then
+if [ -f "raw/$FILE.trace" -o "$FILE" = "test" ]; then
     echo "File 'raw/$FILE.trace' already exists; will not overwrite"
     exit 1
 fi
