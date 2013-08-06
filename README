@@ -1,0 +1,11 @@
+6.829 Final Project: A comparison of bit rate selection algorithms
+Colleen Josephson and Pavel Panchekha
+Spring 2013
+
+ath9k/: modified network driver we used to collect traces
+raw/: the raw data. also see data.txt
+data/: formatted data. also see data.txt
+pysim/: python simulation framework, including the bit rate algos
+paper/: writeup
+out/: various outputs of the algorithms on our traces
+plots/: pretty plots we generated

@@ -110,10 +110,14 @@ def apply_rate(cur_time):
     #"If no packets have been successfully acknowledged, return the
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
-        for i, r in sorted(rates.items(), reverse=True):
+        rrates = [r[1] for r in sorted(rates.items())]
+        rrates.reverse()
+        retry = []
+        for r in rrates:
             if r.succFails < 4:
                 currRate = r.rate
-                return [(ieee80211_to_idx(currRate)[0], NRETRIES)]
+                retry.append((ieee80211_to_idx(currRate)[0], NRETRIES))
+        return retry
 
     # Every 10 packets, select a random non-failing bit rate w/ better avg tx
     #"If the number of packets sent over the link is a multiple of ten,"
