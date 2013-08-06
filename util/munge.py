@@ -9,7 +9,7 @@ Record = collections.namedtuple("Record", FIELDS)
 
 NUM_RATES = 12
 
-SANITY_RE = r"""\(\d+:\d+\s+\){""" + str(NUM_RATES) + "}"
+SANITY_RE = r"""(\d+:\d+\s+){""" + str(NUM_RATES) + "}"
 SANITY_RE = re.compile(SANITY_RE)
 
 LINE_RE = r"""Last\((\d+)\.(\d+)\) took (\d+) ns / (\d+) tries with rate (\d+) at (\d+)\((\d+)\) kbps \[(\d+)\]\n"""
