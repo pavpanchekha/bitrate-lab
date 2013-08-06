@@ -1,3 +1,4 @@
+<!-- -*- mode: markdown -*- -->
 
 Data File Formats
 =================
@@ -5,7 +6,7 @@ Data File Formats
 The folders `raw` `data` contains captured bit rate success traces.
 
 Files `raw/*.trace`
---------------------
+-------------------
 
 These are directly captured from the kernel, with newer versions; they have one record per line, such as:
 
@@ -31,7 +32,7 @@ These are ignored by the munger, but if any numbers get appreciably big (compare
 
 
 Files `raw/raw_old/*.trace`
--------------------
+---------------------------
 
 These are directly captured from the kernel; they have one record per line, such as:
 
