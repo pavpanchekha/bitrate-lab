@@ -99,7 +99,7 @@ class BalancedEWMA:
 def tx_time(rix, length=1200): #rix is index to RATES, length in bytes
     mbps = RATES[rix].dot11_rate / 2000
 
-    if RATES[rix].phy == "odfm":
+    if RATES[rix].phy == "ofdm":
         '''* OFDM:
         *
         * N_DBPS = DATARATE x 4
