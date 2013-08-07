@@ -4,7 +4,7 @@
 
 from __future__ import division
 
-from random import choice 
+import random
 from common import ieee80211_to_idx
 import common
 
@@ -66,7 +66,6 @@ class Packet:
     def __repr__(self):
         return ("Pkt sent at time %r, rate %r was successful: %r\n" 
                 % (self.time_sent, self.rate, self.success))
-
 
 class Rate:
     def __init__(self, rate):
@@ -131,7 +130,7 @@ def apply_rate(cur_time):
                     if r.losslessTX < cavgTX and r.succFails < 4]
 
         if len(eligible) > 0:
-            sampleRate = choice(eligible).rate #select random rate from eligible
+            sampleRate = random.choice(eligible).rate #select random rate from eligible
             return [(ieee80211_to_idx(sampleRate), NRETRIES)]
 
     #"Otherwise, send packet at the bit-rate that has the lowest avg
