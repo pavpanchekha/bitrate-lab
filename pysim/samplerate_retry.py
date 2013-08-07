@@ -152,7 +152,7 @@ def process_feedback(status, timestamp, delay, tries):
     global currRate, npkts, nsuccess, NBYTES
     (bitrate, nretries) = tries[0]
     nretries -= 1
-    bitrate = common.RATES[bitrate].dot11_rate
+    bitrate = common.RATES[bitrate].mbps
 
     #"Calculate the transmission time for the packet based on the
     # bit-rate and number of retries using Equation 5.1 below."

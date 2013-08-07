@@ -238,7 +238,7 @@ def process_feedback(status, timestamp, delay, tries):
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
-            bitrate = common.RATES[bitrate].dot11_rate
+            bitrate = common.RATES[bitrate].mbps
             #if bitrate == 1:
 
             br = rates[bitrate]

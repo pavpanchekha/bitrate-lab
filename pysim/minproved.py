@@ -22,7 +22,7 @@ class BalancedEWMA:
             newval = num / denom
         else:
             avg_block = self.denom / self.blocks
-            block_weight = denom / avg_block
+            block_weight = denom / avg_block if avg_block else 1
             relweight = self.p / (1 - self.p)
 
             prob = num / denom
@@ -268,7 +268,7 @@ def process_feedback(status, timestamp, delay, tries):
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
-            bitrate = common.RATES[bitrate].dot11_rate
+            bitrate = common.RATES[bitrate].mbps
             #if bitrate == 1:
             
             br = rates[bitrate]

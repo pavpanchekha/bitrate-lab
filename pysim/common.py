@@ -3,7 +3,7 @@ import collections
 import math
 
 BitRate = collections.namedtuple("BitRate", ["phy", "kbps", "user_kbps",
-                                             "code", "dot11_rate"])
+                                             "code", "mbps"])
 
 # The 802.11, 802.11b, and 802.11g rates
 RATES = [
@@ -22,7 +22,7 @@ RATES = [
 ]
 
 def ieee80211_to_idx(mbps):
-    opts = [i for i, rate in enumerate(RATES) if rate.dot11_rate == mbps]
+    opts = [i for i, rate in enumerate(RATES) if rate.mbps == mbps]
     if opts:
         return opts[0]
     else:

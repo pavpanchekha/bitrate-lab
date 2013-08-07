@@ -60,7 +60,7 @@ def difs(rix):
 
 def tx_time(rix, nbytes):
     # From the SampleRate paper.  See samplerate.py for annotated version.
-    bitrate = common.RATES[rix].dot11_rate
+    bitrate = common.RATES[rix].mbps
     version = "g" if common.RATES[rix].phy == "ofdm" else "b"
     sifs = 10 if version == "b" else 9
     ack = 304 # Somehow 6mb acks aren't used
@@ -206,6 +206,6 @@ if __name__ == "__main__":
         tries, successes = info
         if not tries: continue
 
-        mbps = common.RATES[rate_idx].dot11_rate
+        mbps = common.RATES[rate_idx].mbps
         print("{:>5} Mbps : {:>4} tries ({:.0%} success rate)".format(
             mbps, tries, successes/tries))

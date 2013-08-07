@@ -7,7 +7,7 @@ RATE=float(os.environ["RATE"]) if "RATE" in os.environ else 1
 try:
     IDX = common.ieee80211_to_idx(RATE)
 except ValueError:
-    opts = [str(rate.dot11_rate) for rate in common.RATES]
+    opts = [str(rate.mbps) for rate in common.RATES]
     print("Invalid rate.  Options are: {}".format(", ".join(opts)))
     exit()
 else:
