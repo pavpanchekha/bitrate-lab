@@ -5,8 +5,9 @@
 from __future__ import division
 
 import random
-from common import ieee80211_to_idx
 import common
+import collections
+from common import ieee80211_to_idx
 
 npkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
@@ -56,16 +57,8 @@ def tx_time(bitrate, retries, nbytes):
 
     return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/(bitrate)))
 
-class Packet:
-    def __init__(self, time_sent, success, txTime, rate):
-        self.time_sent = time_sent
-        self.success = success
-        self.txTime = txTime
-        self.rate = rate
-
-    def __repr__(self):
-        return ("Pkt sent at time %r, rate %r was successful: %r\n" 
-                % (self.time_sent, self.rate, self.success))
+Packet = collections.namedtuple("Packet", ["time_sent", "success",
+                                           "txTime", "rate"])
 
 class Rate:
     def __init__(self, rate):

@@ -196,7 +196,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     mrr = [(ieee80211_to_idx(rate), rates[rate].adjusted_retry_count)
            for rate in chain]
 
-    return r
+    return mrr
         
 #status: true if packet was rcvd successfully
 #timestamp: time pkt was sent
