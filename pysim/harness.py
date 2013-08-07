@@ -53,7 +53,7 @@ class Harness:
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
-        self.histogram = [0] * len(common.RATES)
+        self.histogram = [[0, 0] for i in common.RATES]
 
     def send_packet(self):
         rate_arr = self.choose_rate(self.clock)
@@ -81,7 +81,8 @@ class Harness:
                     break
 
             tot_tries.append((rate, s_tries))
-            self.histogram[rate] += s_tries
+            self.histogram[rate][0] += s_tries
+            self.histogram[rate][1] += 1 if succeeded else 0
             tot_delay += common.tx_time(rate, s_tries, 1500)
 
             if succeeded:
@@ -160,8 +161,10 @@ if __name__ == "__main__":
     throughput = 1500 * 8 * good / (time / 1e9) / 1e6
     print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / good / 1e6, throughput))
 
-    for rate_idx, tries in enumerate(harness.histogram):
+    for rate_idx, info in enumerate(harness.histogram):
+        tries, successes = info
         if not tries: continue
+
         mbps = common.RATES[rate_idx][-1] / 2
-        print("{} Mbps : {} tries".format(str(mbps).rjust(5),
-                                          str(int(tries)).rjust(4)))
+        print("{:>5} Mbps : {:>4} tries ({:.0%} success rate)".format(
+            mbps, tries, successes/tries))
