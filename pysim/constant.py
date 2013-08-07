@@ -1,13 +1,13 @@
 import os
-import common
+import rates
 
 RATE=float(os.environ["RATE"]) if "RATE" in os.environ else 1
 
 # Read the rate as a Mbps value and convert it to an index
 try:
-    IDX = common.ieee80211_to_idx(RATE)
+    IDX = [i for i, r in enumerate(rates.RATES) if r.mbps == RATE][0]
 except ValueError:
-    opts = [str(rate.mbps) for rate in common.RATES]
+    opts = [str(rate.mbps) for rate in rates.RATES]
     print("Invalid rate.  Options are: {}".format(", ".join(opts)))
     exit()
 else:

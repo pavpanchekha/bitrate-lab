@@ -1,7 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 import time
-import common
+import rates
 import os, sys
 import random
 
@@ -52,16 +52,16 @@ for i in range(4, 11):
     BACKOFF["ofdm"].append(int(((2**i) - 1) * (9 / 2)))
 
 def backoff(rix, attempt):
-    return BACKOFF[common.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)]
+    return BACKOFF[rates.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)]
 
 def difs(rix):
-    version = "g" if common.RATES[rix].phy == "ofdm" else "b"
+    version = "g" if rates.RATES[rix].phy == "ofdm" else "b"
     return 50 if version == "b" else 28
 
 def tx_time(rix, nbytes):
     # From the SampleRate paper.  See samplerate.py for annotated version.
-    bitrate = common.RATES[rix].mbps
-    version = "g" if common.RATES[rix].phy == "ofdm" else "b"
+    bitrate = rates.RATES[rix].mbps
+    version = "g" if rates.RATES[rix].phy == "ofdm" else "b"
     sifs = 10 if version == "b" else 9
     ack = 304 # Somehow 6mb acks aren't used
     header = 192 if bitrate == 1 else 96 if version == "b" else 20
@@ -79,7 +79,7 @@ class Harness:
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
-        self.histogram = [[0, 0] for i in common.RATES]
+        self.histogram = [[0, 0] for i in rates.RATES]
 
         self.attempts = 0
 
@@ -206,6 +206,6 @@ if __name__ == "__main__":
         tries, successes = info
         if not tries: continue
 
-        mbps = common.RATES[rate_idx].mbps
+        mbps = rates.RATES[rate_idx].mbps
         print("{:>5} Mbps : {:>4} tries ({:.0%} success rate)".format(
             mbps, tries, successes/tries))

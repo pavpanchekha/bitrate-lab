@@ -5,10 +5,10 @@
 from __future__ import division
 
 import random
-import common
+import rates
 import math
 from collections import namedtuple
-from common import ieee80211_to_idx
+from rates import ieee80211_to_idx
 
 packet_count = 0
 sample_count = 0
@@ -41,7 +41,7 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
     # len bytes (does not include FCS) at the given rate. Duration will
     # also include SIFS."
 
-    rateinfo = common.RATES[common.ieee80211_to_idx(mbps)]
+    rateinfo = rates.RATES[rates.ieee80211_to_idx(mbps)]
 
     if rateinfo.phy == "ofdm":
         #"OFDM:
@@ -121,7 +121,7 @@ class Rate:
 # DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same
 # frequency band as 8# 02.11b, it can achieve higher data rates
 # because of its heritage to 802.11a.
-rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+RATES = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 
 #"10 times a second (this frequency is alterable by changing the
@@ -168,7 +168,7 @@ def apply_rate(cur_time):
             sample_count = 0
             packet_count = 0
             sample_deferred = 0
-        elif delta > len(rates) * 2:
+        elif delta > len(RATES) * 2:
             #"With multi-rate retry, not every planned sample
             # attempt actually gets used, due to the way the retry
             # chain is set up - [max_tp,sample,prob,lowest] for
@@ -178,20 +178,20 @@ def apply_rate(cur_time):
             # starts getting worse, minstrel would start bursting
             # out lots of sampling frames, which would result
             # in a large throughput loss."
-            sample_count += delta  - (len(rates)*2)
+            sample_count += delta  - (len(RATES)*2)
 
         # The kernel actually doesn't use a random number generator
         # here, instead using a pregenerated table of "random" numbers.
         # See net/mac80211/rc80211_minstrel.c :: init_sample_table
 
         # TODO: Use the mechanism the kernel uses
-        randrate = random.choice(list(rates.keys()))
+        randrate = random.choice(list(RATES.keys()))
 
 	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
 	# stage) rate sampling method should be used.  Respect such
 	# rates that are not sampled for 20 interations."
 
-        if randrate < choices.best and rates[randrate].sample_skipped < 20:
+        if randrate < choices.best and RATES[randrate].sample_skipped < 20:
             #"Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark
             # packets that have the sampling rate deferred to the
             # second MRR stage. Increase the sample counter only if
@@ -203,17 +203,17 @@ def apply_rate(cur_time):
 
             chain = [choices.best, randrate, choices.prob, choices.base]
         else:
-            if rates[randrate].sample_limit != 0:
+            if RATES[randrate].sample_limit != 0:
                 sample_count += 1
-                if rates[randrate].sample_limit > 0:
-                    rates[randrate].sample_limit -= 1
+                if RATES[randrate].sample_limit > 0:
+                    RATES[randrate].sample_limit -= 1
 
             chain = [randrate, choices.best, choices.prob, choices.base]
 
     else:
         chain = [choices.best, choices.next, choices.prob, choices.base]
 
-    mrr = [(ieee80211_to_idx(rate), rates[rate].adjusted_retry_count)
+    mrr = [(ieee80211_to_idx(rate), RATES[rate].adjusted_retry_count)
            for rate in chain]
 
     return mrr
@@ -223,10 +223,10 @@ def process_feedback(status, timestamp, delay, tries):
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
-            bitrate = common.RATES[bitrate].mbps
+            bitrate = rates.RATES[bitrate].mbps
             #if bitrate == 1:
 
-            br = rates[bitrate]
+            br = RATES[bitrate]
             br.attempts = (br.attempts + br_tries)
             packet_count += br_tries
 
@@ -250,7 +250,7 @@ def process_feedback(status, timestamp, delay, tries):
 def update_stats(timestamp):
     global choices
 
-    for i, br in rates.items():
+    for i, br in RATES.items():
         usecs = tx_time(i)
 
         if br.attempts: # The kernel wraps this check in an unlikely()
@@ -288,7 +288,7 @@ def update_stats(timestamp):
     br.last_update = timestamp
 
     #changed rates to rates_, changed rates to rates.values() -CJ
-    rates_by_tp = sorted(rates.values(), key=lambda br: br.throughput,
+    rates_by_tp = sorted(RATES.values(), key=lambda br: br.throughput,
                          reverse=True)
     bestThruput = rates_by_tp[0].rate
     nextThruput = rates_by_tp[1].rate
@@ -300,12 +300,12 @@ def update_stats(timestamp):
     # (2) if all success probabilities < 95%, the rate with highest
     # success probability is choosen as max_prob_rate"
 
-    if any(br.probability > MINSTREL_FRAC(95, 100) for br in rates.values()):
-        good_rates = [br for br in rates.values()
+    if any(br.probability > MINSTREL_FRAC(95, 100) for br in RATES.values()):
+        good_rates = [br for br in RATES.values()
                       if br.probability > MINSTREL_FRAC(95, 100)]
         bestProb = max(good_rates, key=lambda br: br.throughput).rate
     else:
-        bestProb = max(rates.values(), key=lambda br: br.probability).rate
+        bestProb = max(RATES.values(), key=lambda br: br.probability).rate
 
     choices = rate_struct(bestThruput, nextThruput, bestProb, choices.base)
 

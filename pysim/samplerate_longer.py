@@ -5,8 +5,8 @@
 from __future__ import division
 
 from random import choice 
-from common import ieee80211_to_idx
-import common
+from rates import ieee80211_to_idx
+import rates
 
 npkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
@@ -23,7 +23,7 @@ backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5
            18:5115, 19:5115, 20:5115}
 
 def bitrate_type(bitrate):
-    return common.RATES[ieee80211_to_idx(bitrate)].phy
+    return rates.RATES[ieee80211_to_idx(bitrate)].phy
 
 
 
@@ -42,7 +42,7 @@ def tx_time(bitrate, retries, nbytes):
         sifs = 10
         ack = 304
         header = 192
-    elif brtype == "cck":
+    elif brtype == "dsss" or brtype == "ds":
         difs = 50
         sifs = 10
         ack = 304
@@ -99,7 +99,7 @@ class Rate:
 # to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.
 # Even though 802.11g operates in the same frequency band as 802.11b, it can achieve higher 
 # data rates because of its heritage to 802.11a.
-rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+RATES = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):
@@ -112,7 +112,7 @@ def apply_rate(cur_time):
     #"If no packets have been successfully acknowledged, return the
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
-        for i, r in sorted(rates.items(), reverse=True):
+        for i, r in sorted(RATES.items(), reverse=True):
             if r.succFails < MAXFAILS:
                 currRate = r.rate
                 return [(ieee80211_to_idx(currRate), NRETRIES)]
@@ -121,12 +121,12 @@ def apply_rate(cur_time):
     #"If the number of packets sent over the link is a multiple of ten,"
     if (nsuccess != 0) and (npkts%10 == 0):
         #"select a random bit-rate from the bit-rates"
-        cavgTX = rates[currRate].avgTX
+        cavgTX = RATES[currRate].avgTX
 
         #" that have not failed four successive times and that
         #have a minimum packet transmission time lower than the
         #current bit-rate’s average transmission time."
-        eligible = [r for i, r in rates.items()
+        eligible = [r for i, r in RATES.items()
                     if r.losslessTX < cavgTX and r.succFails < MAXFAILS]
 
         if len(eligible) > 0:
@@ -150,7 +150,7 @@ def process_feedback(status, timestamp, delay, tries):
     global currRate, npkts, nsuccess, NBYTES
     (bitrate, nretries) = tries[0]
     nretries -= 1
-    bitrate = common.RATES[bitrate].mbps
+    bitrate = rates.RATES[bitrate].mbps
 
     #"Calculate the transmission time for the packet based on the
     # bit-rate and number of retries using Equation 5.1 below."
@@ -160,7 +160,7 @@ def process_feedback(status, timestamp, delay, tries):
     #"Look up the destination and add the transmission time to the
     # total transmission times for the bit-rate."
     
-    br = rates[bitrate]
+    br = RATES[bitrate]
 
     if not status:
         br.succFails += 1
@@ -202,7 +202,7 @@ def remove_stale_results(cur_time):
     window_cutoff = cur_time - 1e10 #window size of 10s
 
     
-    for r in rates.values():
+    for r in RATES.values():
         for p in r.window:
             #"For each stale transmission result, it does the following"
             if p.time_sent < window_cutoff:
@@ -224,7 +224,7 @@ def remove_stale_results(cur_time):
         else:
             r.avgTX = r.totalTX/r.success
 
-    for r in rates.values():
+    for r in RATES.values():
         succFails = 0
         maxSuccFails = 0
 
@@ -251,12 +251,12 @@ def calculateMin():
     global currRate, npkts, nsuccess, NBYTES
 
     #set current rate to the one w/ min avg tx time
-    c = rates[currRate]
+    c = RATES[currRate]
     if c.succFails > MAXFAILS:
         c.avgTX = float("inf")
         #c = rates[1]
 
-    for i, r in sorted(rates.items(), reverse=True):
+    for i, r in sorted(RATES.items(), reverse=True):
         #print("------------------------------------------------")
         #we've never tried this rate thoroughly before
         if r.rate < c.rate and r.avgTX == float("inf") \

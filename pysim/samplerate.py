@@ -5,7 +5,7 @@
 from __future__ import division
 
 import random
-import common
+import rates
 from collections import namedtuple
 
 # Constants: send 1500 bytes at a time, with 1 try each in the MRR
@@ -37,7 +37,7 @@ def tx_time(rix, retries, nbytes):
     # 802.11b packets, 96 for other 802.11b bit-rates, and 20 for
     # 802.11a/g bit-rates. backoff(r) is calculated using the table"
 
-    rate = common.RATES[rix]
+    rate = rates.RATES[rix]
     version = "g" if rate.phy == "ofdm" else "b"
 
     difs = 50 if version == "b" else 28
@@ -54,7 +54,7 @@ Packet = namedtuple("Packet", ["time_sent", "success", "txTime", "rate"])
 
 class Rate:
     def __init__(self, rix):
-        self.info = common.RATES[rix]
+        self.info = rates.RATES[rix]
         self.idx = rix
         self.rate = self.info.mbps
 
@@ -76,8 +76,8 @@ class Rate:
 # DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.  Even though 802.11g operates
 # in the same frequency band as 802.11b, it can achieve higher data
 # rates because of its heritage to 802.11a.
-rates = [Rate(i) for i in range(len(common.RATES))]
-currRate = rates[-1] #current best bitRate
+RATES = [Rate(i) for i in range(len(rates.RATES))]
+currRate = RATES[-1] #current best bitRate
 
 def apply_rate(cur_time):
     global currRate, npkts
@@ -89,7 +89,7 @@ def apply_rate(cur_time):
     #"If no packets have been successfully acknowledged, return the
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
-        for rate in sorted(rates, key=lambda rate: rate.rate, reverse=True):
+        for rate in sorted(RATES, key=lambda rate: rate.rate, reverse=True):
             if rate.successive_failures < 4:
                 currRate = rate
                 return [(rate.idx, NTRIES)]
@@ -98,12 +98,12 @@ def apply_rate(cur_time):
     #"If the number of packets sent over the link is a multiple of ten,"
     if (nsuccess != 0) and (npkts%10 == 0):
         #"select a random bit-rate from the bit-rates"
-        cavg_tx = rates[currRate.idx].avg_tx
+        cavg_tx = RATES[currRate.idx].avg_tx
 
         #"that have not failed four successive times and that have a
         # minimum packet transmission time lower than the current
         # bit-rate's average transmission time."
-        eligible = [r for r in rates
+        eligible = [r for r in RATES
                     if r.lossless_tx < cavg_tx and r.successive_failures < 4]
 
         if len(eligible) > 0:
@@ -135,7 +135,7 @@ def process_feedback(status, timestamp, delay, tries):
     #"Look up the destination and add the transmission time to the
     # total transmission times for the bit-rate."
     
-    br = rates[rix]
+    br = RATES[rix]
 
     if not status:
         br.successive_failures += 1
@@ -167,7 +167,7 @@ def process_feedback(status, timestamp, delay, tries):
     
     #"Append the current time, packet status, transmission time, and
     # bit-rate to the list of transmission results."
-    p = Packet(timestamp, status, tx, common.RATES[rix].mbps)
+    p = Packet(timestamp, status, tx, rates.RATES[rix].mbps)
     br.window.append(p)
 
 #"SampleRate's remove stale results() function removes results from
@@ -177,7 +177,7 @@ def remove_stale_results(cur_time):
     window_cutoff = cur_time - 1e10 #window size of 10s
 
     
-    for r in rates:
+    for r in RATES:
         for p in r.window:
             #"For each stale transmission result, it does the following"
             if p.time_sent < window_cutoff:
@@ -200,7 +200,7 @@ def remove_stale_results(cur_time):
         else:
             r.avg_tx = r.total_tx/r.success
 
-    for r in rates:
+    for r in RATES:
         successive_failures = 0
         maxSuccFails = 0
 
@@ -227,11 +227,11 @@ def calculateMin():
     global currRate
 
     #set current rate to the one w/ min avg tx time
-    c = rates[currRate.idx]
+    c = RATES[currRate.idx]
     if c.successive_failures > 4:
         c.avg_tx = float("inf")
 
-    for r in sorted(rates, key=lambda rate: rate.rate, reverse=True):
+    for r in sorted(RATES, key=lambda rate: rate.rate, reverse=True):
         if r.rate < c.rate and r.avg_tx == float("inf") \
            and r.successive_failures == 0 and r.lossless_tx < c.avg_tx:
             c = r

@@ -3,8 +3,8 @@
 
 from random import randint
 from random import choice 
-import common
-from common import ieee80211_to_idx
+import rates
+from rates import ieee80211_to_idx
 
 class BalancedEWMA:
     def __init__(self, time, time_step, pval):
@@ -174,7 +174,7 @@ class Rate:
 # The modulation scheme used in 802.11g is orthogonal frequency-division multiplexing 
 # (OFDM)copied from 802.11a with data rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s,
 # and reverts to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+# DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same frequency band as 8# 02.11b, it can achieve higher data rates because of its heritage to 802.11a.
-rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+RATES = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 
 # 10 times a second (this frequency is alterable by changing the driver code) a timer
@@ -206,56 +206,56 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
 
-    if rates[bestThruput].tban > 4:
+    if RATES[bestThruput].tban > 4:
         #print("Temp ban on {}, switching to {}!".format(bestThruput, nextThruput))
-        rates[bestThruput].tban = 0
+        RATES[bestThruput].tban = 0
         bestThruput = nextThruput
         nextThruput = bestProb
     
-    if randint(1,100) <= 10 or rates[bestThruput].tban > 4:
+    if randint(1,100) <= 10 or RATES[bestThruput].tban > 4:
         #Analysis of information showed that the system was sampling too hard
         #at some rates. For those rates that never work (54mb, 500m range) 
         #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 
         #for the very very low probability rates, we sample at most twice.
 
-        random = choice(list(rates))
+        random = choice(list(RATES))
         while(random == 1): #never sample at lowest rate
-            random = choice(list(rates))
+            random = choice(list(RATES))
 
         if random < bestThruput:
             r = [(ieee80211_to_idx(bestThruput),
-                     rates[bestThruput].adjusted_retry_count),
+                     RATES[bestThruput].adjusted_retry_count),
                     (ieee80211_to_idx(random),
-                     rates[random].adjusted_retry_count), 
+                     RATES[random].adjusted_retry_count), 
                     (ieee80211_to_idx(bestProb),
-                     rates[bestProb].adjusted_retry_count), 
+                     RATES[bestProb].adjusted_retry_count), 
                     (ieee80211_to_idx(lowestRate),
-                     rates[lowestRate].adjusted_retry_count)]
+                     RATES[lowestRate].adjusted_retry_count)]
         else:
             #TODO: understand the corresponding kernel code more 
             #and implement if (if necessary)
-            if rates[random].sample_limit != 0:
-                if rates[random].sample_limit > 0:
-                    rates[random].sample_limit -= 1
+            if RATES[random].sample_limit != 0:
+                if RATES[random].sample_limit > 0:
+                    RATES[random].sample_limit -= 1
             
             r = [(ieee80211_to_idx(random),
-                      rates[random].adjusted_retry_count), 
+                      RATES[random].adjusted_retry_count), 
                     (ieee80211_to_idx(bestThruput),
-                     rates[bestThruput].adjusted_retry_count),
+                     RATES[bestThruput].adjusted_retry_count),
                     (ieee80211_to_idx(bestProb),
-                     rates[bestProb].adjusted_retry_count), 
+                     RATES[bestProb].adjusted_retry_count), 
                     (ieee80211_to_idx(lowestRate),
-                     rates[lowestRate].adjusted_retry_count)]
+                     RATES[lowestRate].adjusted_retry_count)]
     
     else:     #normal
         r = [(ieee80211_to_idx(bestThruput),
-              rates[bestThruput].adjusted_retry_count), 
+              RATES[bestThruput].adjusted_retry_count), 
              (ieee80211_to_idx(nextThruput),
-              rates[nextThruput].adjusted_retry_count), 
+              RATES[nextThruput].adjusted_retry_count), 
              (ieee80211_to_idx(bestProb),
-              rates[bestProb].adjusted_retry_count), 
+              RATES[bestProb].adjusted_retry_count), 
              (ieee80211_to_idx(lowestRate),
-              rates[lowestRate].adjusted_retry_count)]
+              RATES[lowestRate].adjusted_retry_count)]
     return r
         
 #status: true if packet was rcvd successfully
@@ -268,10 +268,10 @@ def process_feedback(status, timestamp, delay, tries):
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
-            bitrate = common.RATES[bitrate].mbps
+            bitrate = rates.RATES[bitrate].mbps
             #if bitrate == 1:
             
-            br = rates[bitrate]
+            br = RATES[bitrate]
             br.attempts = (br.attempts + br_tries) 
             npkts = (npkts + 1) 
 
@@ -295,15 +295,15 @@ def process_feedback(status, timestamp, delay, tries):
 
 USCNT = 0
 def update_stats(timestamp):
-    global bestThruput, nextThruput, bestProb, rates, USCNT
+    global bestThruput, nextThruput, bestProb, RATES, USCNT
 
     USCNT += 1
 
     if USCNT % 100 == 0:
-        for br in rates.values():
+        for br in RATES.values():
             br.tban = 0
 
-    for i, br in rates.items():
+    for i, br in RATES.items():
         if br.attempts: #prevents divide by 0
             br.succ_hist += br.success
             br.att_hist += br.attempts
@@ -329,13 +329,13 @@ def update_stats(timestamp):
     br.last_update = timestamp #was self.update, changed to br.update -CJ
 
     #changed rates to rates_, changed rates to rates.values() -CJ
-    rates_ = sorted(rates.values(), key=lambda br: br.throughput, reverse=True)
+    rates_ = sorted(RATES.values(), key=lambda br: br.throughput, reverse=True)
     bestThruput = rates_[0].rate
 
     nextThruput = rates_[1].rate
     #probably should be best prob that's not 1mbps, since othwerwise it would be
     # redundant to lowest base rate in retry chain
-    rates_.remove(rates[1])
+    rates_.remove(RATES[1])
     bestProb = max(rates_, key=lambda br: br.ewma.read() if br.ewma.read() else 0).rate#, reverse=True) -CJ
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
