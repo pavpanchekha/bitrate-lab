@@ -81,7 +81,6 @@ class Rate:
 rates = [Rate(i) for i in range(len(common.RATES))]
 currRate = rates[-1] #current best bitRate
 
-#multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):
     global currRate, npkts, nsuccess
     remove_stale_results(cur_time)
@@ -124,24 +123,21 @@ def apply_rate(cur_time):
 # for the bit-rate and destination. process_feedback() performs the
 # following operations:"
 def process_feedback(status, timestamp, delay, tries):
-    #status: true if packet was rcvd successfully
-    #timestamp: time pkt was sent
-    #delay: rtt for entire process (inluding multiple tries) in nanoseconds
-    #tries: an array of (bitrate, nretries) 
     global currRate, npkts, nsuccess, NBYTES
-    (bitrate, nretries) = tries[0]
-    nretries -= 1
-    bitrate = common.RATES[bitrate].mbps
+    rix, nretries = tries[0]
+
+    if status:
+        nretries -= 1 # the last send was successful
 
     #"Calculate the transmission time for the packet based on the
     # bit-rate and number of retries using Equation 5.1 below."
 
-    tx = tx_time(tries[0][0], nretries, NBYTES)
+    tx = tx_time(rix, nretries, NBYTES)
 
     #"Look up the destination and add the transmission time to the
     # total transmission times for the bit-rate."
     
-    br = rates[tries[0][0]]
+    br = rates[rix]
 
     if not status:
         br.succFails += 1
@@ -173,7 +169,7 @@ def process_feedback(status, timestamp, delay, tries):
     
     #"Append the current time, packet status, transmission time, and
     # bit-rate to the list of transmission results."
-    p = Packet(timestamp, status, tx, bitrate)
+    p = Packet(timestamp, status, tx, common.RATES[rix].mbps)
     br.window.append(p)
 
 #"SampleRate's remove stale results() function removes results from
