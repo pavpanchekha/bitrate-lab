@@ -11,7 +11,7 @@ from common import ieee80211_to_idx
 
 # Constants: send 1500 bytes at a time, with 1 try each in the MRR
 NBYTES = 1500
-NRETRIES = 1
+NTRIES = 1
 
 npkts = 0 # number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
@@ -93,7 +93,7 @@ def apply_rate(cur_time):
         for i, r in sorted(rates.items(), reverse=True):
             if r.succFails < 4:
                 currRate = r
-                return [(r.idx, NRETRIES)]
+                return [(r.idx, NTRIES)]
 
     # Every 10 packets, select a random non-failing bit rate w/ better avg tx
     #"If the number of packets sent over the link is a multiple of ten,"
@@ -109,12 +109,12 @@ def apply_rate(cur_time):
 
         if len(eligible) > 0:
             sampleRate = random.choice(eligible)
-            return [(sampleRate.idx, NRETRIES)]
+            return [(sampleRate.idx, NTRIES)]
 
     #"Otherwise, send packet at the bit-rate that has the lowest avg
     # transmission time" Trusts that currRate is properly maintained
     # to be lowest avgTX
-    return [(currRate.idx, NRETRIES)]
+    return [(currRate.idx, NTRIES)]
 
 
 #"When process f eedback() runs, it updates information that tracks
