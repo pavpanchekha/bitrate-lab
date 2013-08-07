@@ -80,7 +80,7 @@ rates = [Rate(i) for i in range(len(common.RATES))]
 currRate = rates[-1] #current best bitRate
 
 def apply_rate(cur_time):
-    global currRate, npkts, nsuccess
+    global currRate, npkts
     remove_stale_results(cur_time)
     
     #"Increment the number of packets sent over the link"
@@ -121,7 +121,7 @@ def apply_rate(cur_time):
 # for the bit-rate and destination. process_feedback() performs the
 # following operations:"
 def process_feedback(status, timestamp, delay, tries):
-    global currRate, npkts, nsuccess, NBYTES
+    global currRate, nsuccess
     rix, nretries = tries[0]
 
     if status:
@@ -224,7 +224,7 @@ def remove_stale_results(cur_time):
         
 
 def calculateMin():
-    global currRate, npkts, nsuccess
+    global currRate
 
     #set current rate to the one w/ min avg tx time
     c = rates[currRate.idx]
