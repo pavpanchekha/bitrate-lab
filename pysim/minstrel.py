@@ -145,22 +145,25 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
         update_stats(cur_time)
         time_last_called = cur_time
 
-    #Minstrel spends a particular percentage of frames, doing "look around" i.e. 
-    #randomly trying other rates, to gather statistics. The percentage of 
-    #"look around" frames defaults to 10%. The distribution of lookaround frames is
-    #also randomized somewhat to avoid any potential "strobing" of lookaround 
-    #between similar nodes.
+    #"Minstrel spends a particular percentage of frames, doing "look
+    # around" i.e.  randomly trying other rates, to gather
+    # statistics. The percentage of "look around" frames defaults to
+    # 10%. The distribution of lookaround frames is also randomized
+    # somewhat to avoid any potential "strobing" of lookaround between
+    # similar nodes."
     
-    #Try |         Lookaround rate              | Normal rate
-    #    | random < best    | random > best     |
-    #--------------------------------------------------------------
-    # 1  | Best throughput  | Random rate       | Best throughput
-    # 2  | Random rate      | Best throughput   | Next best throughput
-    # 3  | Best probability | Best probability  | Best probability
-    # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
-    delta = (packet_count * SAMPLING_RATIO / 100) - (sample_count + sample_deferred // 2)
+    # Try |         Lookaround rate              | Normal rate
+    #     | random < best    | random > best     |
+    # --------------------------------------------------------------
+    #  1  | Best throughput  | Random rate       | Best throughput
+    #  2  | Random rate      | Best throughput   | Next best throughput
+    #  3  | Best probability | Best probability  | Best probability
+    #  4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
 
-    if delta > 0:
+    delta = (packet_count * SAMPLING_RATIO // 100) - \
+            (sample_count + sample_deferred // 2)
+
+    if delta > 0: # In this case we attempt to sample a rate
         #"Analysis of information showed that the system was sampling
         # too hard at some rates. For those rates that never work
         # (54mb, 500m range) there is no point in sending 10 sample
@@ -182,26 +185,29 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
             # out lots of sampling frames, which would result          
             # in a large throughput loss."
             sample_count += delta  - (len(rates)*2)
-            
 
-        randrate = 1
-        while(randrate == 1): #never sample at lowest rate
-            randrate = random.choice(rates.keys())
+        # The kernel actually doesn't use a random number generator
+        # here, instead using a pregenerated table of "random" numbers.
+        # See net/mac80211/rc80211_minstrel.c :: init_sample_table
 
         if randrate < bestThruput:
-            chain = [bestThruput, randrate, bestProb, lowestRate]
-            ''' FROM KERNEL:
-            /* Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark        
-            * packets that have the sampling rate deferred to the      
-            * second MRR stage. Increase the sample counter only       
-            * if the deferred sample rate was actually used.           
-            * Use the sample_deferred counter to make sure that        
-            * the sampling is not done in large bursts */'''
+        # TODO: Use the mechanism the kernel uses
+        randrate = random.choice(rates.keys())
+        
+	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
+	# stage) rate sampling method should be used.  Respect such
+	# rates that are not sampled for 20 interations."
+            #"Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark
+            # packets that have the sampling rate deferred to the
+            # second MRR stage. Increase the sample counter only if
+            # the deferred sample rate was actually used.  Use the
+            # sample_deferred counter to make sure that the sampling
+            # is not done in large bursts"
             probe_flag = True
             sample_deferred += 1
 
+            chain = [bestThruput, randrate, bestProb, lowestRate]
         else:
-            #manages probe counting
             if rates[randrate].sample_limit != 0:
                 sample_count += 1
                 if rates[randrate].sample_limit > 0:
@@ -209,7 +215,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
             
             chain = [randrate, bestThruput, bestProb, lowestRate]
     
-    else:     #normal
+    else:
         chain = [bestThruput, nextThruput, bestProb, lowestRate]
 
     mrr = [(ieee80211_to_idx(rate), rates[rate].adjusted_retry_count)
