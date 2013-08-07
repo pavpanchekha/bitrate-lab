@@ -1,6 +1,6 @@
-# This file attempts to implement the minstrel rate control algorithm
-# from the 3.10.5 Linux kernel. We assume multi-rate retry
-# capabilities, so we omit the code for the non-mrr case.
+# This module implements the Minstrel rate control algorithm based on
+# the 3.10.5 Linux kernel. We assume multi-rate retry capabilities, so
+# we omit code for the non-MRR case.
 
 from __future__ import division
 

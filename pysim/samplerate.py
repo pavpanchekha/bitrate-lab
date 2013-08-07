@@ -1,6 +1,5 @@
-# Colleen Josephson, 2013
-# This file attempts to implement the SampleRate bit rate selection algorithm 
-# as outlined in the JBicket MS Thesis.
+# This module implements the SampleRate bit rate selection algorithm
+# as outlined in John Bicket's MIT Master's Thesis.
 
 from __future__ import division
 
