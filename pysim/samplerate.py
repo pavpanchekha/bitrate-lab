@@ -14,8 +14,8 @@ NBYTES = 1500 #constant
 currRate = 54 #current best bitRate
 NRETRIES = 1
 
-# The average back-off period, in microseconds, for up to 8 attempts of a 802.11b unicast packet. 
-# TODO: find g data
+# The average back-off period, in microseconds, for up to 8 attempts
+# of a 802.11b unicast packet.  TODO: find g data
 backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5115,
            10:5115, 11:5115, 12:5115, 13:5115, 14:5115, 15:5115, 16:5115, 17:5115,
            18:5115, 19:5115, 20:5115}
@@ -25,10 +25,11 @@ def bitrate_type(bitrate):
 
 
 
-#"To calculate the transmission time of a n-byte unicast packet given the bit-rate b and
-# number of retries r, SampleRate uses the following equation based on the 802.11 unicast
-# retransmission mechanism detailed in Section 2.2"
-#
+#"To calculate the transmission time of a n-byte unicast packet given
+# the bit-rate b and number of retries r, SampleRate uses the
+# following equation based on the 802.11 unicast retransmission
+# mechanism detailed in Section 2.2"
+
 # tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
 def tx_time(bitrate, retries, nbytes):
     # bitrate in MBPS, since 1*10^6 bps / 10-6 seconds/microseconds = 1 bit per microsecond
@@ -92,11 +93,13 @@ class Rate:
                    self.totalTX, self.avgTX, self.losslessTX))
 
 
-# The modulation scheme used in 802.11g is orthogonal frequency-division multiplexing (OFDM)
-# copied from 802.11a with data rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s, and reverts 
-# to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.
-# Even though 802.11g operates in the same frequency band as 802.11b, it can achieve higher 
-# data rates because of its heritage to 802.11a.
+# The modulation scheme used in 802.11g is orthogonal
+# frequency-division multiplexing (OFDM) copied from 802.11a with data
+# rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s, and reverts to CCK
+# (like the 802.11b standard) for 5.5 and 11 Mbit/s and
+# DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.  Even though 802.11g operates
+# in the same frequency band as 802.11b, it can achieve higher data
+# rates because of its heritage to 802.11a.
 rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
@@ -121,9 +124,9 @@ def apply_rate(cur_time):
         #"select a random bit-rate from the bit-rates"
         cavgTX = rates[currRate].avgTX
 
-        #" that have not failed four successive times and that
-        #have a minimum packet transmission time lower than the
-        #current bit-rate's average transmission time."
+        #" that have not failed four successive times and that have a
+        #minimum packet transmission time lower than the current
+        #bit-rate's average transmission time."
         eligible = [r for i, r in rates.items()
                     if r.losslessTX < cavgTX and r.succFails < 4]
 
@@ -131,15 +134,16 @@ def apply_rate(cur_time):
             sampleRate = choice(eligible).rate #select random rate from eligible
             return [(ieee80211_to_idx(sampleRate), NRETRIES)]
 
-    #"Otherwise, send packet at the bit-rate that has the lowest avg transmission time"
-    # Trusts that currRate is properly maintained to be lowest avgTX
+    #"Otherwise, send packet at the bit-rate that has the lowest avg
+    # transmission time" Trusts that currRate is properly maintained
+    # to be lowest avgTX
     return [(ieee80211_to_idx(currRate), NRETRIES)]
 
 
 #"When process f eedback() runs, it updates information that tracks
-# the number of samples and recalculates the average transmission
-# time for the bit-rate and destination. process_feedback() performs
-# the following operations:"
+# the number of samples and recalculates the average transmission time
+# for the bit-rate and destination. process_feedback() performs the
+# following operations:"
 def process_feedback(status, timestamp, delay, tries):
     #status: true if packet was rcvd successfully
     #timestamp: time pkt was sent
@@ -204,8 +208,9 @@ def remove_stale_results(cur_time):
         for p in r.window:
             #"For each stale transmission result, it does the following"
             if p.time_sent < window_cutoff:
-                #"Remove the transmission time from the total transmission times
-                # at that bit-rate to that destination."
+                #"Remove the transmission time from the total
+                # transmission times at that bit-rate to that
+                # destination."
                 r.window.remove(p)
                 r.totalTX -= p.txTime
 
@@ -255,17 +260,10 @@ def calculateMin():
         #c = rates[1]
 
     for i, r in sorted(rates.items(), reverse=True):
-        #print("------------------------------------------------")
-        #we've never tried this rate thoroughly before
         if r.rate < c.rate and r.avgTX == float("inf") \
            and r.succFails == 0 and r.losslessTX < c.avgTX:
-
-            #print ("c = %r " % c)
-            #print ("r = %r " %r)
-
             c = r
             break
-        #print("------------------------------------------------")
         if c.avgTX > r.avgTX and r.succFails < 4:
             c = r
 

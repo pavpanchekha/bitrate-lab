@@ -97,7 +97,7 @@ class BalancedEWMA:
     def read(self):
         if self.val:
             return int(self.val * 18000)
-        else: 
+        else:
             return None
 
 def tx_time(rix, length=1200): #rix is index to RATES, length in bytes
