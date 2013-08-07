@@ -15,47 +15,41 @@ NBYTES = 1500 #constant
 currRate = 54 #current best bitRate
 NRETRIES = 1
 
-# The average back-off period, in microseconds, for up to 8 attempts
-# of a 802.11b unicast packet.  TODO: find g data
-backoff = {0:0, 1:155, 2:315, 3:635, 4:1275, 5:2555, 6:5115, 7:5115, 8:5115, 9:5115,
-           10:5115, 11:5115, 12:5115, 13:5115, 14:5115, 15:5115, 16:5115, 17:5115,
-           18:5115, 19:5115, 20:5115}
-
 def bitrate_type(bitrate):
     return common.RATES[ieee80211_to_idx(bitrate)].phy
 
-
+# The average back-off period, in microseconds, for up to 8 attempts
+# of a 802.11b unicast packet.
+# TODO: find g data
+backoff = [0, 155, 315, 635, 1275, 2555, 5115]
 
 #"To calculate the transmission time of a n-byte unicast packet given
 # the bit-rate b and number of retries r, SampleRate uses the
 # following equation based on the 802.11 unicast retransmission
 # mechanism detailed in Section 2.2"
 
-# tx_time(b, r, n) =  difs + backoff[r] + (r + 1)*(sifs + ack + header + (n * 8/b))
 def tx_time(bitrate, retries, nbytes):
-    # bitrate in MBPS, since 1*10^6 bps / 10-6 seconds/microseconds = 1 bit per microsecond
-    global currRate, npkts, nsuccess, NBYTES
+    # tx_time(b, r, n) = difs + backoff[r] + \
+    #                  + (r + 1)*(sifs + ack + header + (n * 8/b)
 
-    brtype = bitrate_type(bitrate)
-    if bitrate == 1:
-        difs = 50
-        sifs = 10
-        ack = 304
-        header = 192
-    elif brtype == "cck":
-        difs = 50
-        sifs = 10
-        ack = 304
-        header = 96
-    elif brtype == "ofdm":
-        difs = 28
-        sifs = 9
-        ack = 304 # Somehow 6mb acks aren't used
-        header = 20
-    else:
-        raise ValueError("Unknown bitrate type", brtype, bitrate)
+    #"where difs is 50 microseconds in 802.11b and 28 microseconds in
+    # 802.11a/g, sifs is 10 microseconds for 802.11b and 9 for
+    # 802.11a/g, and ack is 304 microseconds using 1 megabit
+    # acknowledgments for 802.11b and 200 microseconds for 6 megabit
+    # acknowledgments.  header is 192 microseconds for 1 megabit
+    # 802.11b packets, 96 for other 802.11b bit-rates, and 20 for
+    # 802.11a/g bit-rates. backoff(r) is calculated using the table"
 
-    return difs + backoff[retries] + (retries+1)*(sifs + ack + header + (nbytes * 8/(bitrate)))
+    version = "g" if bitrate_type(bitrate) == "ofdm" else "b"
+    difs = 50 if version == "b" else 28
+    sifs = 10 if version == "b" else 9
+    ack = 304 # Somehow 6mb acks aren't used
+    header = 192 if bitrate == 1 else 96 if version == "b" else 20
+
+    backoff_r = backoff[retries] if retries < len(backoff) else backoff[-1]
+
+    return difs + backoff_r + \
+        (retries + 1) * (sifs + ack + header + (nbytes * 8 / bitrate))
 
 Packet = collections.namedtuple("Packet", ["time_sent", "success",
                                            "txTime", "rate"])

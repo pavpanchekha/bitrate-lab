@@ -82,7 +82,7 @@ class Harness:
 
             tot_tries.append((rate, s_tries))
             self.histogram[rate] += s_tries
-            tot_delay += s_tries * common.tx_time(rate, 1500)
+            tot_delay += common.tx_time(rate, s_tries, 1500)
 
             if succeeded:
                 tot_status = True
