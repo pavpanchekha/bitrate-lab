@@ -55,6 +55,23 @@ class Harness:
 
         self.histogram = [[0, 0] for i in common.RATES]
 
+        self.attempts = 0
+
+    def send_one(self, rate, is_success):
+        delay = common.tx_time(rate, 1, 1500)
+
+        if is_success:
+            delay += common.difs(rate)
+            self.attempts = 0
+        else:
+            self.attempts += 1
+            delay += common.backoff(rate, self.attempts)
+
+        self.histogram[rate][0] += 1
+        self.histogram[rate][1] += 1 if is_success else 0
+
+        return delay
+
     def send_packet(self):
         rate_arr = self.choose_rate(self.clock)
 
@@ -75,15 +92,13 @@ class Harness:
             for i in range(tries):
                 success = random.random() < p_success
                 s_tries += 1
+                tot_delay += self.send_one(rate, success)
 
                 if success:
                     succeeded = True
                     break
 
             tot_tries.append((rate, s_tries))
-            self.histogram[rate][0] += s_tries
-            self.histogram[rate][1] += 1 if succeeded else 0
-            tot_delay += common.tx_time(rate, s_tries, 1500)
 
             if succeeded:
                 tot_status = True

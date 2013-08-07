@@ -5,6 +5,7 @@
 
 from random import choice 
 import common
+import math
 from common import ieee80211_to_idx
 
 npkts = 0 #number of packets sent over link
@@ -26,24 +27,52 @@ np = 0
 nd = 0
 probeFlag = False
 
-# The average back-off period, in milliseconds, for up to 8 attempts of a 802.11b unicast packet. 
-# TODO: find g data
-backoff = {0:0, 1:.155, 2:.315, 3:.635, 4:1.275, 5:2.555, 6:5.115, 7:5.115, 8:5.115, 
-9:5.115, 10:5.115, 11:5.115, 12:5.115, 13:5.115, 14:5.115, 15:5.115, 16:5.115, 
-17:5.115, 18:5.115, 19:5.115, 20:5.115}
-#802.11g rates
-odfm = set([6, 9, 12, 18, 24, 36, 48, 54])
+def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
+    '''
+    Adapted from 802.11 util.c ieee80211_frame_duration()
 
-'''
-/* Adapted from 802.11 util.c ieee80211_frame_duration()
-*
-* calculate duration (in microseconds, rounded up to next higher
-* integer if it includes a fractional microsecond) to send frame of
-* len bytes (does not include FCS) at the given rate. Duration will
-* also include SIFS.
-*/'''
-def tx_time(rate, length): #rate is Mbps, length in bytes
-    return common.tx_time(ieee80211_to_idx(rate), length)
+    calculate duration (in microseconds, rounded up to next higher
+    integer if it includes a fractional microsecond) to send frame of
+    len bytes (does not include FCS) at the given rate. Duration will
+    also include SIFS.
+    '''
+
+    rateinfo = common.RATES[common.ieee80211_to_idx(mbps)]
+
+    if rateinfo.phy == "ofdm":
+        '''
+        OFDM:
+        N_DBPS = DATARATE x 4
+        N_SYM = Ceiling((16+8xLENGTH+6) / N_DBPS)
+        (16 = SIGNAL time, 6 = tail bits)
+        TXTIME = T_PREAMBLE + T_SIGNAL + T_SYM x N_SYM + Signal Ext
+
+        T_SYM = 4 usec
+        802.11a - 17.5.2: aSIFSTime = 16 usec
+        802.11g - 19.8.4: aSIFSTime = 10 usec +
+        signal ext = 6 usec
+        '''
+        dur = 16 # SIFS + signal ext */
+        dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
+        dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
+        dur += 4 * (math.ceil((16+8*(length+4)+6)/(4*mbps))+1) # T_SYM x N_SYM
+
+    else:
+        '''
+        802.11b or 802.11g with 802.11b compatibility:
+        18.3.4: TXTIME = PreambleLength + PLCPHeaderTime +
+        Ceiling(((LENGTH+PBCC)x8)/DATARATE). PBCC=0.
+
+        802.11 (DS): 15.3.3, 802.11b: 18.3.4
+        aSIFSTime = 10 usec
+        aPreambleLength = 144 usec or 72 usec with short preamble
+        aPLCPHeaderLength = 48 usec or 24 usec with short preamble
+        '''
+        dur = 10 # aSIFSTime = 10 usec
+        dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
+        dur += math.ceil((8*(length + 4))/mbps)+1
+
+    return dur
 
 class Packet:
     def __init__(self, time_sent, success, txTime, rate):
@@ -244,7 +273,6 @@ def update_stats(timestamp):
 
     for i, br in rates.items():
         if br.attempts: #prevents divide by 0
-            p = br.success * 18000 // br.attempts
             br.succ_hist += br.success
             br.att_hist += br.attempts
             br.ewma.feed(timestamp, br.success, br.attempts)
