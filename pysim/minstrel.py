@@ -34,45 +34,39 @@ def MINSTREL_TRUNC(val):
     return val >> MINSTREL_SCALE
 
 def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
-    '''
-    Adapted from 802.11 util.c ieee80211_frame_duration()
+    # Adapted from 802.11 util.c ieee80211_frame_duration()
 
-    calculate duration (in microseconds, rounded up to next higher
-    integer if it includes a fractional microsecond) to send frame of
-    len bytes (does not include FCS) at the given rate. Duration will
-    also include SIFS.
-    '''
+    #"calculate duration (in microseconds, rounded up to next higher
+    # integer if it includes a fractional microsecond) to send frame of
+    # len bytes (does not include FCS) at the given rate. Duration will
+    # also include SIFS."
 
     rateinfo = common.RATES[common.ieee80211_to_idx(mbps)]
 
     if rateinfo.phy == "ofdm":
-        '''
-        OFDM:
-        N_DBPS = DATARATE x 4
-        N_SYM = Ceiling((16+8xLENGTH+6) / N_DBPS)
-        (16 = SIGNAL time, 6 = tail bits)
-        TXTIME = T_PREAMBLE + T_SIGNAL + T_SYM x N_SYM + Signal Ext
+        #"OFDM:
+        # N_DBPS = DATARATE x 4
+        # N_SYM = Ceiling((16+8xLENGTH+6) / N_DBPS)
+        # (16 = SIGNAL time, 6 = tail bits)
+        # TXTIME = T_PREAMBLE + T_SIGNAL + T_SYM x N_SYM + Signal Ext
 
-        T_SYM = 4 usec
-        802.11a - 17.5.2: aSIFSTime = 16 usec
-        802.11g - 19.8.4: aSIFSTime = 10 usec + signal ext = 6 usec
-        '''
+        # T_SYM = 4 usec
+        # 802.11a - 17.5.2: aSIFSTime = 16 usec
+        # 802.11g - 19.8.4: aSIFSTime = 10 usec + signal ext = 6 usec"
         dur = 16 # SIFS + signal ext */
         dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
         dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
         dur += 4 * (math.ceil((16+8*(length+4)+6)/(4*mbps))+1) # T_SYM x N_SYM
 
     else:
-        '''
-        802.11b or 802.11g with 802.11b compatibility:
-        18.3.4: TXTIME = PreambleLength + PLCPHeaderTime +
-        Ceiling(((LENGTH+PBCC)x8)/DATARATE). PBCC=0.
+        #"802.11b or 802.11g with 802.11b compatibility:
+        # 18.3.4: TXTIME = PreambleLength + PLCPHeaderTime +
+        # Ceiling(((LENGTH+PBCC)x8)/DATARATE). PBCC=0.
 
-        802.11 (DS): 15.3.3, 802.11b: 18.3.4
-        aSIFSTime = 10 usec
-        aPreambleLength = 144 usec or 72 usec with short preamble
-        aPLCPHeaderLength = 48 usec or 24 usec with short preamble
-        '''
+        # 802.11 (DS): 15.3.3, 802.11b: 18.3.4
+        # aSIFSTime = 10 usec
+        # aPreambleLength = 144 usec or 72 usec with short preamble
+        # aPLCPHeaderLength = 48 usec or 24 usec with short preamble"
         dur = 10 # aSIFSTime = 10 usec
         dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
         dur += math.ceil((8*(length + 4))/mbps)+1
@@ -80,7 +74,6 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
     return dur
 
 class Rate:
-    #OFDM = g
     def __init__(self, rate):
         self.rate = rate #in mbps
         self.throughput = 0 #in bits per second
@@ -120,16 +113,6 @@ class Rate:
     def ewma(self, new, weight):
         old = self.probability
         self.probability = (new * (EWMA_DIV - weight) + old * weight) // EWMA_DIV;
-
-    def __repr__(self):
-        return ("Bitrate %r mbps: \n"
-                "  attempts: %r \n"
-                "  pktsAcked: %r \n"
-                "  thruput: %r microseconds \n"
-                "  probSuccess: %r \n"
-                "  losslessTX: %r microseconds"
-                % (self.rate, self.attempts, self.success,
-                   self.throughput, self.probability, self.losslessTX))
 
 # The modulation scheme used in 802.11g is orthogonal
 # frequency-division multiplexing (OFDM)copied from 802.11a with data

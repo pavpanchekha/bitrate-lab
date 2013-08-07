@@ -1,31 +1,37 @@
-# Colleen Josephson, 2013
-# This file attempts to implement the minstrel rate control algorithm from the
-# 3.3.8 linux kernel. We assume multi-rate retry capabilities, so we omit 
-# the code for the non-mrr case. 
+# This file attempts to implement the minstrel rate control algorithm
+# from the 3.10.5 Linux kernel. We assume multi-rate retry
+# capabilities, so we omit the code for the non-mrr case.
 
-from random import choice 
+from __future__ import division
+
+import random
 import common
 import math
+import collections
 from common import ieee80211_to_idx
 
-npkts = 0 #number of packets sent over link
-nsuccess = 0 #number of packets sent successfully 
-nlookaround = 0
-NBYTES = 1500 #constant
-currRate = 54  #current best bitRate
-NRETRIES = 20
-bestThruput = 12
-nextThruput = 11
-bestProb = 2
-lowestRate = 1
+packet_count = 0
+sample_count = 0
+sample_deferred = 0
+
+# Rates
+rate_struct = collections.namedtuple("Rates", ["best", "next", "prob", "base"])
+choices = rate_struct(12, 11, 2, 1)
+
 time_last_called = 0
-cw_min = 15
-cw_max = 1023
-segment_size = 6000
-max_retry = 7 #safe default specified in kernel code
-np = 0
-nd = 0
 probeFlag = False
+
+MAX_RETRY = 7
+SAMPLING_RATIO = 10
+MINSTREL_SCALE = 16
+EWMA_LEVEL = 96
+EWMA_DIV = 128
+
+def MINSTREL_FRAC(val, div):
+    return (val << MINSTREL_SCALE) // div
+
+def MINSTREL_TRUNC(val):
+    return val >> MINSTREL_SCALE
 
 def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
     '''
@@ -49,8 +55,7 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
 
         T_SYM = 4 usec
         802.11a - 17.5.2: aSIFSTime = 16 usec
-        802.11g - 19.8.4: aSIFSTime = 10 usec +
-        signal ext = 6 usec
+        802.11g - 19.8.4: aSIFSTime = 10 usec + signal ext = 6 usec
         '''
         dur = 16 # SIFS + signal ext */
         dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
@@ -74,35 +79,23 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
 
     return dur
 
-class Packet:
-    def __init__(self, time_sent, success, txTime, rate):
-        self.time_sent = time_sent
-        self.success = success
-        self.txTime = txTime
-        self.rate = rate
-
-    def __repr__(self):
-        return ("Pkt sent at time %r, rate %r was successful: %r\n" 
-                % (self.time_sent, self.rate, self.success))
-
-
 class Rate:
-    #OFDM = g
     def __init__(self, rate):
         self.rate = rate #in mbps
         self.throughput = 0 #in bits per second
         self.last_update = 0.0 #timestamp of last update, ns(?)
-        #ewma obj. can return probability of success. if you ask nicely.
-        self.ewma = common.BalancedEWMA(0.0, 100e6, 0.75) #100e6 = 100 ms,
+        self.probability = 0
+        self.ewma_packets = 0
+        self.ewma_blocks = 0
         self.succ_hist = 0 #total successes ever
         self.att_hist = 0 #total xmission attempts ever
         self.success = 0  #number of successful xmissions in cur time interval
         self.attempts = 0 #number of attempted transmissions in cur time interval
         self.losslessTX = tx_time(rate, 1200) #microseconds, pktsize 1200 in kernel,
         self.ack = tx_time(rate, 10) #microseconds, assumes 1mbps ack rate
-        self.window = [] #packets rcvd in last 10s
 
         #what is the difference between these?
+        self.sample_skipped = 0
         self.sample_limit = -1
         self.retry_count = 1
 
@@ -114,172 +107,187 @@ class Rate:
             tx_time_single = self.ack + self.losslessTX
 
             #contention window
-            cw = cw_min
+            cw = 15 # 15 = CWmin
             tx_time_single += (9* cw) >> 1;
-            cw = min((cw << 1) | 1, cw_max)
-            
+            cw = min((cw << 1) | 1, 1023) # 1023 = CWmax
+
             tx_time_ += tx_time_single
 
             self.retry_count += 1
-            condition = (tx_time_ < segment_size) and (self.retry_count  < 
-                                                      max_retry)
+            # 6000 == segment size
+            condition = (tx_time_ < 6000) and (self.retry_count  < MAX_RETRY)
         self.adjusted_retry_count = self.retry_count #Max retrans. used for probing
 
-    def __repr__(self):
-        return ("Bitrate %r mbps: \n"
-                "  attempts: %r \n"
-                "  pktsAcked: %r \n"
-                "  thruput: %r microseconds \n"
-                "  probSuccess: %r \n"
-                "  losslessTX: %r microseconds"
-                % (self.rate, self.attempts, self.success, 
-                   self.throughput, self.ewma.read(), self.losslessTX))
+    def ewma(self, num, den, weight):
+        old = self.probability
+        self.ewma_packets += den
+        self.ewma_blocks += 1
 
-# The modulation scheme used in 802.11g is orthogonal frequency-division multiplexing 
-# (OFDM)copied from 802.11a with data rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s,
-# and reverts to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+# DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same frequency band as 8# 02.11b, it can achieve higher data rates because of its heritage to 802.11a.
+        beta = weight / (EWMA_DIV - weight) # equal to 3 if weight = EWMA_LEVEL
+        new = (beta * self.ewma_packets * old
+               + (num << MINSTREL_SCALE) * self.ewma_blocks) \
+            / (beta * self.ewma_packets + den * self.ewma_blocks)
+        self.probability = new
+
+# The modulation scheme used in 802.11g is orthogonal
+# frequency-division multiplexing (OFDM)copied from 802.11a with data
+# rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s, and reverts to CCK
+# (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+#
+# DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same
+# frequency band as 8# 02.11b, it can achieve higher data rates
+# because of its heritage to 802.11a.
 rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 
-# 10 times a second (this frequency is alterable by changing the driver code) a timer
-# fires, which evaluates the statistics table. EWMA calculations (described below) 
-# are used to process the success history of each rate. On completion of the 
-# calculation, a decision is made as to the rate which has the best throughput, 
-# second best throughput, and highest probability of success. This data is used for 
-# populating the retry chain during the next 100 ms. Note that the retry chain is 
-# described below.
-def apply_rate(cur_time): #cur_time is in nanoseconds
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES, np, nd
-    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called
+#"10 times a second (this frequency is alterable by changing the
+# driver code) a timer fires, which evaluates the statistics
+# table. EWMA calculations (described below) are used to process the
+# success history of each rate. On completion of the calculation, a
+# decision is made as to the rate which has the best throughput,
+# second best throughput, and highest probability of success. This
+# data is used for populating the retry chain during the next 100
+# ms. Note that the retry chain is described below."
+def apply_rate(cur_time):
+    global packet_count, sample_count, sample_deferred, time_last_called
 
     if cur_time - time_last_called >= 1e8:
         update_stats(cur_time)
         time_last_called = cur_time
 
-    #Minstrel spends a particular percentage of frames, doing "look around" i.e. 
-    #randomly trying other rates, to gather statistics. The percentage of 
-    #"look around" frames defaults to 10%. The distribution of lookaround frames is
-    #also randomized somewhat to avoid any potential "strobing" of lookaround 
-    #between similar nodes.
-    
-    #Try |         Lookaround rate              | Normal rate
-    #    | random < best    | random > best     |
-    #--------------------------------------------------------------
-    # 1  | Best throughput  | Random rate       | Best throughput
-    # 2  | Random rate      | Best throughput   | Next best throughput
-    # 3  | Best probability | Best probability  | Best probability
-    # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
-    delta = (npkts*.1 - (np + nd/2.0))
-    if delta > 0: #random!
-        #Analysis of information showed that the system was sampling too hard
-        #at some rates. For those rates that never work (54mb, 500m range) 
-        #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 
-        #for the very very low probability rates, we sample at most twice.
-        
-        if npkts >= 10000:
-            np = 0
-            npkts = 0
-            nd = 0
+    #"Minstrel spends a particular percentage of frames, doing "look
+    # around" i.e.  randomly trying other rates, to gather
+    # statistics. The percentage of "look around" frames defaults to
+    # 10%. The distribution of lookaround frames is also randomized
+    # somewhat to avoid any potential "strobing" of lookaround between
+    # similar nodes."
+
+    # Try |         Lookaround rate              | Normal rate
+    #     | random < best    | random > best     |
+    # --------------------------------------------------------------
+    #  1  | Best throughput  | Random rate       | Best throughput
+    #  2  | Random rate      | Best throughput   | Next best throughput
+    #  3  | Best probability | Best probability  | Best probability
+    #  4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
+
+    delta = (packet_count * SAMPLING_RATIO // 100) - \
+            (sample_count + sample_deferred // 2)
+
+    if delta > 0: # In this case we attempt to sample a rate
+        #"Analysis of information showed that the system was sampling
+        # too hard at some rates. For those rates that never work
+        # (54mb, 500m range) there is no point in sending 10 sample
+        # packets (< 6 ms time). Consequently, for the very very low
+        # probability rates, we sample at most twice."
+
+        if packet_count >= 10000:
+            sample_count = 0
+            packet_count = 0
+            sample_deferred = 0
         elif delta > len(rates) * 2:
-            '''FROM KERNEL COMMENTS:
-            /* With multi-rate retry, not every planned sample          
-            * attempt actually gets used, due to the way the retry     
-            * chain is set up - [max_tp,sample,prob,lowest] for        
-            * sample_rate < max_tp.                                    
-            *                                                          
-            * If there's too much sampling backlog and the link        
-            * starts getting worse, minstrel would start bursting      
-            * out lots of sampling frames, which would result          
-            * in a large throughput loss. */'''
-            np += delta  - (len(rates)*2)
-            
+            #"With multi-rate retry, not every planned sample
+            # attempt actually gets used, due to the way the retry
+            # chain is set up - [max_tp,sample,prob,lowest] for
+            # sample_rate < max_tp.
+            #
+            # If there's too much sampling backlog and the link
+            # starts getting worse, minstrel would start bursting
+            # out lots of sampling frames, which would result
+            # in a large throughput loss."
+            sample_count += delta  - (len(rates)*2)
 
-        random = choice(list(rates))
-        while(random == 1): #never sample at lowest rate
-            random = choice(list(rates))
+        # The kernel actually doesn't use a random number generator
+        # here, instead using a pregenerated table of "random" numbers.
+        # See net/mac80211/rc80211_minstrel.c :: init_sample_table
 
-        if random < bestThruput:
-            chain = [bestThruput, random, bestProb, lowestRate]
-            ''' FROM KERNEL:
-            /* Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark        
-            * packets that have the sampling rate deferred to the      
-            * second MRR stage. Increase the sample counter only       
-            * if the deferred sample rate was actually used.           
-            * Use the sample_deferred counter to make sure that        
-            * the sampling is not done in large bursts */'''
+        # TODO: Use the mechanism the kernel uses
+        randrate = random.choice(list(rates.keys()))
+
+	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
+	# stage) rate sampling method should be used.  Respect such
+	# rates that are not sampled for 20 interations."
+
+        if randrate < choices.best and rates[randrate].sample_skipped < 20:
+            #"Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark
+            # packets that have the sampling rate deferred to the
+            # second MRR stage. Increase the sample counter only if
+            # the deferred sample rate was actually used.  Use the
+            # sample_deferred counter to make sure that the sampling
+            # is not done in large bursts"
             probe_flag = True
-            nd += 1
+            sample_deferred += 1
 
+            chain = [choices.best, randrate, choices.prob, choices.base]
         else:
-            #manages probe counting
-            if rates[random].sample_limit != 0:
-                np += 1
-                if rates[random].sample_limit > 0:
-                    rates[random].sample_limit -= 1
-            
-            chain = [random, bestThruput, bestProb, lowestRate]
-    
-    else:     #normal
-        chain = [bestThruput, nextThruput, bestProb, lowestRate]
+            if rates[randrate].sample_limit != 0:
+                sample_count += 1
+                if rates[randrate].sample_limit > 0:
+                    rates[randrate].sample_limit -= 1
+
+            chain = [randrate, choices.best, choices.prob, choices.base]
+
+    else:
+        chain = [choices.best, choices.next, choices.prob, choices.base]
 
     mrr = [(ieee80211_to_idx(rate), rates[rate].adjusted_retry_count)
            for rate in chain]
 
     return mrr
-        
-#status: true if packet was rcvd successfully
-#timestamp: time pkt was sent
-#delay: rtt for entire process (inluding multiple tries) in nanoseconds
-#tries: an array of (bitrate, nretries) 
+
 def process_feedback(status, timestamp, delay, tries):
-    global npkts, nsuccess, nlookaround, NBYTES, currRate, NRETRIES, probeFlag
-    global bestThruput, nextThruput, bestProb, lowestRate, time_last_called, nd, np
+    global packet_count, probeFlag, time_last_called, sample_deferred, sample_count
     for t in range(len(tries)):
         (bitrate, br_tries) = tries[t]
         if br_tries > 0:
             bitrate = common.RATES[bitrate].dot11_rate
             #if bitrate == 1:
-            
+
             br = rates[bitrate]
-            br.attempts = (br.attempts + br_tries) 
-            npkts = (npkts + br_tries) 
+            br.attempts = (br.attempts + br_tries)
+            packet_count += br_tries
 
             #if the packet was successful...
             if status and t == (len(tries)-1):
-                br.success = (br.success + 1) 
-                nsuccess = (nsuccess + 1) 
+                br.success = (br.success + 1)
 
-            #instantiate pkt object
-            p = Packet(timestamp, status, delay, bitrate)
-            
-            #add packet to window
-            br.window.append(p)
-            
     #if we had the random rate second in the retry chain, and actually ended up
     #using it, increment the count and unset the flag
     if t > 1 and probeFlag:
-        np += 1
+        sample_count += 1
         probeFlag = False
 
-    if nd > 0:
-        nd-= 1
+    if sample_deferred > 0:
+        sample_deferred -= 1
 
     if timestamp - time_last_called >= 1e8:
         self.update_stats(timestamp)
 
 
 def update_stats(timestamp):
-    global bestThruput, nextThruput, bestProb, rates
+    global choices
 
     for i, br in rates.items():
-        if br.attempts: #prevents divide by 0
+        usecs = tx_time(i)
+
+        if br.attempts: # The kernel wraps this check in an unlikely()
+            br.sample_skipped = 0
             br.succ_hist += br.success
             br.att_hist += br.attempts
-            br.ewma.feed(timestamp, br.success, br.attempts)
-        p = br.ewma.read()
-        
+            br.ewma(br.success, br.attempts, EWMA_LEVEL)
+        else:
+            br.sample_skipped += 1
 
-        if p and (p > 17100 or p < 1800):
+        br.success = 0
+        br.attempts = 0
+
+        if (br.probability < MINSTREL_FRAC(10, 100)):
+            br.throughput = 0
+        else:
+            br.throughput = br.probability * (1000000 // usecs)
+
+        #"Sample less often below the 10% chance of success.
+        # Sample less often above the 95% chance of success."
+        if br.probability > MINSTREL_FRAC(95, 100) or \
+           br.probability < MINSTREL_FRAC(10, 100):
             br.adjusted_retry_count = br.retry_count >> 1
             if br.adjusted_retry_count > 2:
                 br.adjusted_retry_count = 2
@@ -288,33 +296,35 @@ def update_stats(timestamp):
             br.sample_limit = -1
             br.adjusted_retry_count = br.retry_count
 
-        if br.adjusted_retry_count == 0:
+        if not br.adjusted_retry_count:
             br.adjusted_retry_count = 2
-        
-        br.success = 0
-        br.attempts = 0
-        br.throughput = throughput(p, br.losslessTX)
 
-    br.last_update = timestamp #was self.update, changed to br.update -CJ
+    br.last_update = timestamp
 
     #changed rates to rates_, changed rates to rates.values() -CJ
-    rates_ = sorted(rates.values(), key=lambda br: br.throughput, reverse=True)
-    bestThruput = rates_[0].rate
+    rates_by_tp = sorted(rates.values(), key=lambda br: br.throughput,
+                         reverse=True)
+    bestThruput = rates_by_tp[0].rate
+    nextThruput = rates_by_tp[1].rate
 
-    #print("(rate, throughput, probability)")
-    #for r in rates_:
-    #    print("(%r, %r mbps, p = %r, succ = %r, att = %r)"%(r.rate, round(r.throughput/1e6, 3), round(r.ewma.read()/18000.0, 3) if r.ewma.read() is not None else None, r.succ_hist, r.att_hist)) 
-    #print()
+    #"To determine the most robust rate (max_prob_rate) used at 3rd
+    # mmr stage we distinct between two cases:
+    # (1) if any success probabilitiy >= 95%, out of those rates
+    # choose the maximum throughput rate as max_prob_rate
+    # (2) if all success probabilities < 95%, the rate with highest
+    # success probability is choosen as max_prob_rate"
 
-    nextThruput = rates_[1].rate
-    #probably should be best prob that's not 1mbps, since othwerwise it would be
-    # redundant to lowest base rate in retry chain
-    rates_.remove(rates[1])
-    bestProb = max(rates_, key=lambda br: br.ewma.read() if br.ewma.read() else 0).rate#, reverse=True) -CJ
+    if any(br.probability > MINSTREL_FRAC(95, 100) for br in rates.values()):
+        good_rates = [br for br in rates.values()
+                      if br.probability > MINSTREL_FRAC(95, 100)]
+        bestProb = max(good_rates, key=lambda br: br.throughput).rate
+    else:
+        bestProb = max(rates.values(), key=lambda br: br.probability).rate
+
+    choices = rate_struct(bestThruput, nextThruput, bestProb, choices.base)
 
 # thru = p_success [0, 18000] / lossless xmit time in ms
 def throughput(psuccess, rtt):
     if psuccess:
         return psuccess*(1e6/rtt)
     else: return 0
-

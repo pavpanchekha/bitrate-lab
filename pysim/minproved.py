@@ -6,6 +6,40 @@ from random import choice
 import common
 from common import ieee80211_to_idx
 
+class BalancedEWMA:
+    def __init__(self, time, time_step, pval):
+        self.p = pval
+        self.time = time
+        self.step = time_step
+
+        self.blocks = 0
+        self.denom = 0
+        self.val = None
+
+    def feed(self, time, num, denom):
+        if self.blocks == 0:
+            self.denom = denom
+            newval = num / denom
+        else:
+            avg_block = self.denom / self.blocks
+            block_weight = denom / avg_block
+            relweight = self.p / (1 - self.p)
+
+            prob = num / denom
+
+            newval = (self.val * relweight + prob * block_weight) / \
+                     (relweight + block_weight)
+
+        self.blocks += 1
+        self.val = newval
+        self.time = time
+
+    def read(self):
+        if self.val is not None:
+            return int(self.val * 18000)
+        else:
+            return None
+
 npkts = 0 #number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
 nlookaround = 0
@@ -94,7 +128,7 @@ class Rate:
         self.throughput = 0 #in bits per second
         self.last_update = 0.0 #timestamp of last update, ns(?)
         #ewma obj. can return probability of success. if you ask nicely.
-        self.ewma = common.BalancedEWMA(0.0, 100e6, 0.75) #100e6 = 100 ms
+        self.ewma = BalancedEWMA(0.0, 100e6, 0.75) #100e6 = 100 ms
         self.succ_hist = 0 #total successes ever
         self.att_hist = 0 #total xmission attempts ever
         self.success = 0  #number of successful xmissions in cur time interval
