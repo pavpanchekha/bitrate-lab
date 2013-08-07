@@ -1,7 +1,6 @@
-# Colleen Josephson, 2013
-# This file attempts to implement the minstrel rate control algorithm from the
-# 3.3.8 linux kernel. We assume multi-rate retry capabilities, so we omit 
-# the code for the non-mrr case. 
+# This file attempts to implement the minstrel rate control algorithm
+# from the 3.10.5 Linux kernel. We assume multi-rate retry
+# capabilities, so we omit the code for the non-mrr case.
 
 from __future__ import division
 
@@ -11,22 +10,18 @@ import math
 import collections
 from common import ieee80211_to_idx
 
-packet_count = 0 #number of packets sent over link
+packet_count = 0
+sample_count = 0
+sample_deferred = 0
 
 # Rates
 rate_struct = collections.namedtuple("Rates", ["best", "next", "prob", "base"])
 choices = rate_struct(12, 11, 2, 1)
 
 time_last_called = 0
-cw_min = 15
-cw_max = 1023
-segment_size = 6000
-max_retry = 7 #safe default specified in kernel code
 probeFlag = False
 
-sample_count = 0
-sample_deferred = 0
-
+MAX_RETRY = 7
 SAMPLING_RATIO = 10
 MINSTREL_SCALE = 16
 EWMA_LEVEL = 96
@@ -111,15 +106,15 @@ class Rate:
             tx_time_single = self.ack + self.losslessTX
 
             #contention window
-            cw = cw_min
+            cw = 15 # 15 = CWmin
             tx_time_single += (9* cw) >> 1;
-            cw = min((cw << 1) | 1, cw_max)
-            
+            cw = min((cw << 1) | 1, 1023) # 1023 = CWmax
+
             tx_time_ += tx_time_single
 
             self.retry_count += 1
-            condition = (tx_time_ < segment_size) and (self.retry_count  < 
-                                                      max_retry)
+            # 6000 == segment size
+            condition = (tx_time_ < 6000) and (self.retry_count  < MAX_RETRY)
         self.adjusted_retry_count = self.retry_count #Max retrans. used for probing
 
     def ewma(self, new, weight):
@@ -133,12 +128,16 @@ class Rate:
                 "  thruput: %r microseconds \n"
                 "  probSuccess: %r \n"
                 "  losslessTX: %r microseconds"
-                % (self.rate, self.attempts, self.success, 
+                % (self.rate, self.attempts, self.success,
                    self.throughput, self.probability, self.losslessTX))
 
-# The modulation scheme used in 802.11g is orthogonal frequency-division multiplexing 
-# (OFDM)copied from 802.11a with data rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s,
-# and reverts to CCK (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+# DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same frequency band as 8# 02.11b, it can achieve higher data rates because of its heritage to 802.11a.
+# The modulation scheme used in 802.11g is orthogonal
+# frequency-division multiplexing (OFDM)copied from 802.11a with data
+# rates of 6, 9, 12, 18, 24, 36, 48, and 54 Mbit/s, and reverts to CCK
+# (like the 802.11b standard) for 5.5 and 11 Mbit/s and DBPSK/DQPSK+#
+# DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same
+# frequency band as 8# 02.11b, it can achieve higher data rates
+# because of its heritage to 802.11a.
 rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
 
 
@@ -163,7 +162,7 @@ def apply_rate(cur_time):
     # 10%. The distribution of lookaround frames is also randomized
     # somewhat to avoid any potential "strobing" of lookaround between
     # similar nodes."
-    
+
     # Try |         Lookaround rate              | Normal rate
     #     | random < best    | random > best     |
     # --------------------------------------------------------------
@@ -181,20 +180,20 @@ def apply_rate(cur_time):
         # (54mb, 500m range) there is no point in sending 10 sample
         # packets (< 6 ms time). Consequently, for the very very low
         # probability rates, we sample at most twice."
-        
+
         if packet_count >= 10000:
             sample_count = 0
             packet_count = 0
             sample_deferred = 0
         elif delta > len(rates) * 2:
-            #"With multi-rate retry, not every planned sample          
-            # attempt actually gets used, due to the way the retry     
-            # chain is set up - [max_tp,sample,prob,lowest] for        
-            # sample_rate < max_tp.                                    
-            #                                                          
-            # If there's too much sampling backlog and the link        
-            # starts getting worse, minstrel would start bursting      
-            # out lots of sampling frames, which would result          
+            #"With multi-rate retry, not every planned sample
+            # attempt actually gets used, due to the way the retry
+            # chain is set up - [max_tp,sample,prob,lowest] for
+            # sample_rate < max_tp.
+            #
+            # If there's too much sampling backlog and the link
+            # starts getting worse, minstrel would start bursting
+            # out lots of sampling frames, which would result
             # in a large throughput loss."
             sample_count += delta  - (len(rates)*2)
 
@@ -204,7 +203,7 @@ def apply_rate(cur_time):
 
         # TODO: Use the mechanism the kernel uses
         randrate = random.choice(list(rates.keys()))
-        
+
 	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
 	# stage) rate sampling method should be used.  Respect such
 	# rates that are not sampled for 20 interations."
@@ -225,9 +224,9 @@ def apply_rate(cur_time):
                 sample_count += 1
                 if rates[randrate].sample_limit > 0:
                     rates[randrate].sample_limit -= 1
-            
+
             chain = [randrate, choices.best, choices.prob, choices.base]
-    
+
     else:
         chain = [choices.best, choices.next, choices.prob, choices.base]
 
@@ -235,11 +234,7 @@ def apply_rate(cur_time):
            for rate in chain]
 
     return mrr
-        
-#status: true if packet was rcvd successfully
-#timestamp: time pkt was sent
-#delay: rtt for entire process (inluding multiple tries) in nanoseconds
-#tries: an array of (bitrate, nretries) 
+
 def process_feedback(status, timestamp, delay, tries):
     global packet_count, probeFlag, time_last_called, sample_deferred, sample_count
     for t in range(len(tries)):
@@ -247,14 +242,14 @@ def process_feedback(status, timestamp, delay, tries):
         if br_tries > 0:
             bitrate = common.RATES[bitrate].dot11_rate
             #if bitrate == 1:
-            
+
             br = rates[bitrate]
-            br.attempts = (br.attempts + br_tries) 
+            br.attempts = (br.attempts + br_tries)
             packet_count += br_tries
 
             #if the packet was successful...
             if status and t == (len(tries)-1):
-                br.success = (br.success + 1) 
+                br.success = (br.success + 1)
 
     #if we had the random rate second in the retry chain, and actually ended up
     #using it, increment the count and unset the flag
@@ -336,4 +331,3 @@ def throughput(psuccess, rtt):
     if psuccess:
         return psuccess*(1e6/rtt)
     else: return 0
-
