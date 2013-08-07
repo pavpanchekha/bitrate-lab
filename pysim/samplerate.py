@@ -9,11 +9,13 @@ import common
 import collections
 from common import ieee80211_to_idx
 
-npkts = 0 #number of packets sent over link
-nsuccess = 0 #number of packets sent successfully 
-NBYTES = 1500 #constant
-currRate = 54 #current best bitRate
+# Constants: send 1500 bytes at a time, with 1 try each in the MRR
+NBYTES = 1500
 NRETRIES = 1
+
+npkts = 0 # number of packets sent over link
+nsuccess = 0 #number of packets sent successfully 
+currRate = 54 #current best bitRate
 
 def bitrate_type(bitrate):
     return common.RATES[ieee80211_to_idx(bitrate)].phy
@@ -90,7 +92,7 @@ rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54]
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):
-    global currRate, npkts, nsuccess, NBYTES, NRETRIES
+    global currRate, npkts, nsuccess
     remove_stale_results(cur_time)
     
     #"Increment the number of packets sent over the link"
@@ -237,7 +239,7 @@ def remove_stale_results(cur_time):
         
 
 def calculateMin():
-    global currRate, npkts, nsuccess, NBYTES
+    global currRate, npkts, nsuccess
 
     #set current rate to the one w/ min avg tx time
     c = rates[currRate]
