@@ -7,7 +7,6 @@ from __future__ import division
 import random
 import common
 from collections import namedtuple
-from common import ieee80211_to_idx
 
 # Constants: send 1500 bytes at a time, with 1 try each in the MRR
 NBYTES = 1500
