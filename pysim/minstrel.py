@@ -92,6 +92,7 @@ class Rate:
         self.ack = tx_time(rate, 10) #microseconds, assumes 1mbps ack rate
 
         #what is the difference between these?
+        self.sample_skipped = 0
         self.sample_limit = -1
         self.retry_count = 1
 
@@ -190,13 +191,14 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
         # here, instead using a pregenerated table of "random" numbers.
         # See net/mac80211/rc80211_minstrel.c :: init_sample_table
 
-        if randrate < bestThruput:
         # TODO: Use the mechanism the kernel uses
         randrate = random.choice(rates.keys())
         
 	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
 	# stage) rate sampling method should be used.  Respect such
 	# rates that are not sampled for 20 interations."
+
+        if randrate < bestThruput and rates[randrate].sample_skipped < 20:
             #"Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark
             # packets that have the sampling rate deferred to the
             # second MRR stage. Increase the sample counter only if
@@ -264,9 +266,12 @@ def update_stats(timestamp):
     for i, br in rates.items():
         if br.attempts: #prevents divide by 0
             p = br.success * 18000 // br.attempts
+            br.sample_skipped = 0
             br.succ_hist += br.success
             br.att_hist += br.attempts
             br.ewma.feed(timestamp, p)
+        else:
+            br.sample_skipped += 1
         p = br.ewma.read()
         
 
