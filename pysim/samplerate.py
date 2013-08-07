@@ -55,9 +55,11 @@ Packet = collections.namedtuple("Packet", ["time_sent", "success",
                                            "txTime", "rate"])
 
 class Rate:
-    def __init__(self, rate):
-        self.rate = rate #in mbps
-        self.idx = ieee80211_to_idx(rate)
+    def __init__(self, rix):
+        self.info = common.RATES[rix]
+        self.idx = rix
+        self.rate = self.info.mbps #in mbps
+
         self.success = 0
         self.tries = 0
         self.pktAcked = 0
@@ -76,8 +78,8 @@ class Rate:
 # DBPSK/DQPSK+DSSS for 1 and 2 Mbit/s.  Even though 802.11g operates
 # in the same frequency band as 802.11b, it can achieve higher data
 # rates because of its heritage to 802.11a.
-rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
-currRate = rates[54] #current best bitRate
+rates = [Rate(i) for i in range(len(common.RATES))]
+currRate = rates[-1] #current best bitRate
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):
@@ -90,21 +92,21 @@ def apply_rate(cur_time):
     #"If no packets have been successfully acknowledged, return the
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
-        for i, r in sorted(rates.items(), reverse=True):
-            if r.succFails < 4:
-                currRate = r
-                return [(r.idx, NTRIES)]
+        for rate in sorted(rates, key=lambda rate: rate.rate, reverse=True):
+            if rate.succFails < 4:
+                currRate = rate
+                return [(rate.idx, NTRIES)]
 
     # Every 10 packets, select a random non-failing bit rate w/ better avg tx
     #"If the number of packets sent over the link is a multiple of ten,"
     if (nsuccess != 0) and (npkts%10 == 0):
         #"select a random bit-rate from the bit-rates"
-        cavgTX = rates[currRate.rate].avgTX
+        cavgTX = rates[currRate.idx].avgTX
 
         #"that have not failed four successive times and that have a
         # minimum packet transmission time lower than the current
         # bit-rate's average transmission time."
-        eligible = [r for i, r in rates.items()
+        eligible = [r for r in rates
                     if r.losslessTX < cavgTX and r.succFails < 4]
 
         if len(eligible) > 0:
@@ -139,7 +141,7 @@ def process_feedback(status, timestamp, delay, tries):
     #"Look up the destination and add the transmission time to the
     # total transmission times for the bit-rate."
     
-    br = rates[bitrate]
+    br = rates[tries[0][0]]
 
     if not status:
         br.succFails += 1
@@ -181,7 +183,7 @@ def remove_stale_results(cur_time):
     window_cutoff = cur_time - 1e10 #window size of 10s
 
     
-    for r in rates.values():
+    for r in rates:
         for p in r.window:
             #"For each stale transmission result, it does the following"
             if p.time_sent < window_cutoff:
@@ -204,7 +206,7 @@ def remove_stale_results(cur_time):
         else:
             r.avgTX = r.totalTX/r.success
 
-    for r in rates.values():
+    for r in rates:
         succFails = 0
         maxSuccFails = 0
 
@@ -231,12 +233,11 @@ def calculateMin():
     global currRate, npkts, nsuccess
 
     #set current rate to the one w/ min avg tx time
-    c = rates[currRate.rate]
+    c = rates[currRate.idx]
     if c.succFails > 4:
         c.avgTX = float("inf")
-        #c = rates[1]
 
-    for i, r in sorted(rates.items(), reverse=True):
+    for r in sorted(rates, key=lambda rate: rate.rate, reverse=True):
         if r.rate < c.rate and r.avgTX == float("inf") \
            and r.succFails == 0 and r.losslessTX < c.avgTX:
             c = r
