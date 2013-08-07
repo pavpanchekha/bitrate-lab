@@ -58,17 +58,17 @@ class Rate:
     def __init__(self, rix):
         self.info = common.RATES[rix]
         self.idx = rix
-        self.rate = self.info.mbps #in mbps
+        self.rate = self.info.mbps
 
         self.success = 0
         self.tries = 0
-        self.pktAcked = 0
-        self.succFails = 0
-        self.totalTX = 0
-        self.avgTX = float("inf")
-        #pktsize/channelrate. pktsize = 1500 bytes
-        self.losslessTX = tx_time(self.idx, 0, 1500) #microseconds
-        self.window = [] #packets rcvd in last 10s
+        self.window = [] # Packets received in the last 10s
+
+        self.successive_failures = 0
+        self.total_tx = 0
+        self.avg_tx = float("inf")
+
+        self.lossless_tx = tx_time(self.idx, 0, 1500) # microseconds
 
 
 # The modulation scheme used in 802.11g is orthogonal
@@ -92,7 +92,7 @@ def apply_rate(cur_time):
     # highest bit-rate that has not had 4 successive failures."
     if nsuccess == 0:
         for rate in sorted(rates, key=lambda rate: rate.rate, reverse=True):
-            if rate.succFails < 4:
+            if rate.successive_failures < 4:
                 currRate = rate
                 return [(rate.idx, NTRIES)]
 
@@ -100,13 +100,13 @@ def apply_rate(cur_time):
     #"If the number of packets sent over the link is a multiple of ten,"
     if (nsuccess != 0) and (npkts%10 == 0):
         #"select a random bit-rate from the bit-rates"
-        cavgTX = rates[currRate.idx].avgTX
+        cavg_tx = rates[currRate.idx].avg_tx
 
         #"that have not failed four successive times and that have a
         # minimum packet transmission time lower than the current
         # bit-rate's average transmission time."
         eligible = [r for r in rates
-                    if r.losslessTX < cavgTX and r.succFails < 4]
+                    if r.lossless_tx < cavg_tx and r.successive_failures < 4]
 
         if len(eligible) > 0:
             sampleRate = random.choice(eligible)
@@ -114,7 +114,7 @@ def apply_rate(cur_time):
 
     #"Otherwise, send packet at the bit-rate that has the lowest avg
     # transmission time" Trusts that currRate is properly maintained
-    # to be lowest avgTX
+    # to be lowest avg_tx
     return [(currRate.idx, NTRIES)]
 
 
@@ -140,12 +140,12 @@ def process_feedback(status, timestamp, delay, tries):
     br = rates[rix]
 
     if not status:
-        br.succFails += 1
+        br.successive_failures += 1
         #"If the packet failed, increment the number of successive
         # failures for the bit-rate.
     else:
         #"Otherwise reset it."
-        br.succFails = 0
+        br.successive_failures = 0
 
         #"If the packet succeeded, increment the number of successful
         # packets sent at that bit-rate.
@@ -156,12 +156,12 @@ def process_feedback(status, timestamp, delay, tries):
     # based on the sum of trans- mission times and the number of
     # successful packets sent at that bit-rate."
 
-    br.totalTX += tx
+    br.total_tx += tx
 
     if br.success == 0:
-        br.avgTX = float("inf")
+        br.avg_tx = float("inf")
     else:
-        br.avgTX = br.totalTX/br.success
+        br.avg_tx = br.total_tx/br.success
 
     #"Set the current-bit rate for the destination to the one with the
     # minimum average transmission time."
@@ -187,7 +187,7 @@ def remove_stale_results(cur_time):
                 # transmission times at that bit-rate to that
                 # destination."
                 r.window.remove(p)
-                r.totalTX -= p.txTime
+                r.total_tx -= p.txTime
 
                 #"If the packet succeeded, decrement the number of
                 # successful packets at that bit-rate to that
@@ -198,25 +198,25 @@ def remove_stale_results(cur_time):
         #each stale sample, it recalculates the minimum average
         #transmission times for each bit-rate and destination.
         if r.success == 0:
-            r.avgTX = float("inf")
+            r.avg_tx = float("inf")
         else:
-            r.avgTX = r.totalTX/r.success
+            r.avg_tx = r.total_tx/r.success
 
     for r in rates:
-        succFails = 0
+        successive_failures = 0
         maxSuccFails = 0
 
         for p in r.window:
             if p.success:
-                if succFails > maxSuccFails:
-                    maxSuccFails = succFails
-                succFails = 0
+                if successive_failures > maxSuccFails:
+                    maxSuccFails = successive_failures
+                successive_failures = 0
             else:
-                succFails += 1
-        if succFails > maxSuccFails:
-            maxSuccFails = succFails
+                successive_failures += 1
+        if successive_failures > maxSuccFails:
+            maxSuccFails = successive_failures
 
-        r.succFails = maxSuccFails
+        r.successive_failures = maxSuccFails
                 
     
     #"remove_stale_results() then sets the current bit-rate for each
@@ -230,15 +230,15 @@ def calculateMin():
 
     #set current rate to the one w/ min avg tx time
     c = rates[currRate.idx]
-    if c.succFails > 4:
-        c.avgTX = float("inf")
+    if c.successive_failures > 4:
+        c.avg_tx = float("inf")
 
     for r in sorted(rates, key=lambda rate: rate.rate, reverse=True):
-        if r.rate < c.rate and r.avgTX == float("inf") \
-           and r.succFails == 0 and r.losslessTX < c.avgTX:
+        if r.rate < c.rate and r.avg_tx == float("inf") \
+           and r.successive_failures == 0 and r.lossless_tx < c.avg_tx:
             c = r
             break
-        if c.avgTX > r.avgTX and r.succFails < 4:
+        if c.avg_tx > r.avg_tx and r.successive_failures < 4:
             c = r
 
     currRate = c
