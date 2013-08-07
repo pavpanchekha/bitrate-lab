@@ -15,10 +15,6 @@ NRETRIES = 1
 
 npkts = 0 # number of packets sent over link
 nsuccess = 0 #number of packets sent successfully 
-currRate = 54 #current best bitRate
-
-def bitrate_type(bitrate):
-    return common.RATES[ieee80211_to_idx(bitrate)].phy
 
 # The average back-off period, in microseconds, for up to 8 attempts
 # of a 802.11b unicast packet.
@@ -30,7 +26,7 @@ backoff = [0, 155, 315, 635, 1275, 2555, 5115]
 # following equation based on the 802.11 unicast retransmission
 # mechanism detailed in Section 2.2"
 
-def tx_time(bitrate, retries, nbytes):
+def tx_time(rix, retries, nbytes):
     # tx_time(b, r, n) = difs + backoff[r] + \
     #                  + (r + 1)*(sifs + ack + header + (n * 8/b)
 
@@ -42,16 +38,18 @@ def tx_time(bitrate, retries, nbytes):
     # 802.11b packets, 96 for other 802.11b bit-rates, and 20 for
     # 802.11a/g bit-rates. backoff(r) is calculated using the table"
 
-    version = "g" if bitrate_type(bitrate) == "ofdm" else "b"
+    rate = common.RATES[rix]
+    version = "g" if rate.phy == "ofdm" else "b"
+
     difs = 50 if version == "b" else 28
     sifs = 10 if version == "b" else 9
     ack = 304 # Somehow 6mb acks aren't used
-    header = 192 if bitrate == 1 else 96 if version == "b" else 20
+    header = 192 if rate.code == 0 else 96 if version == "b" else 20
 
     backoff_r = backoff[retries] if retries < len(backoff) else backoff[-1]
 
     return difs + backoff_r + \
-        (retries + 1) * (sifs + ack + header + (nbytes * 8 / bitrate))
+        (retries + 1) * (sifs + ack + header + (nbytes * 8 / rate.mbps))
 
 Packet = collections.namedtuple("Packet", ["time_sent", "success",
                                            "txTime", "rate"])
@@ -59,6 +57,7 @@ Packet = collections.namedtuple("Packet", ["time_sent", "success",
 class Rate:
     def __init__(self, rate):
         self.rate = rate #in mbps
+        self.idx = ieee80211_to_idx(rate)
         self.success = 0
         self.tries = 0
         self.pktAcked = 0
@@ -66,19 +65,8 @@ class Rate:
         self.totalTX = 0
         self.avgTX = float("inf")
         #pktsize/channelrate. pktsize = 1500 bytes
-        self.losslessTX = tx_time(rate, 0, 1500) #microseconds
+        self.losslessTX = tx_time(self.idx, 0, 1500) #microseconds
         self.window = [] #packets rcvd in last 10s
-
-    def __repr__(self):
-        return ("Bitrate %r mbps: \n"
-                "  tries: %r \n"
-                "  pktsAcked: %r \n"
-                "  succFails: %r \n"
-                "  totalTX: %r microseconds \n"
-                "  avgTx: %r microseconds \n"
-                "  losslessTX: %r microseconds"
-                % (self.rate, self.tries, self.pktAcked, self.succFails, 
-                   self.totalTX, self.avgTX, self.losslessTX))
 
 
 # The modulation scheme used in 802.11g is orthogonal
@@ -89,6 +77,7 @@ class Rate:
 # in the same frequency band as 802.11b, it can achieve higher data
 # rates because of its heritage to 802.11a.
 rates = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+currRate = rates[54] #current best bitRate
 
 #multi-rate retry returns an array of (rate, ntries) for the next n packets
 def apply_rate(cur_time):
@@ -103,29 +92,29 @@ def apply_rate(cur_time):
     if nsuccess == 0:
         for i, r in sorted(rates.items(), reverse=True):
             if r.succFails < 4:
-                currRate = r.rate
-                return [(ieee80211_to_idx(currRate), NRETRIES)]
+                currRate = r
+                return [(r.idx, NRETRIES)]
 
     # Every 10 packets, select a random non-failing bit rate w/ better avg tx
     #"If the number of packets sent over the link is a multiple of ten,"
     if (nsuccess != 0) and (npkts%10 == 0):
         #"select a random bit-rate from the bit-rates"
-        cavgTX = rates[currRate].avgTX
+        cavgTX = rates[currRate.rate].avgTX
 
-        #" that have not failed four successive times and that have a
-        #minimum packet transmission time lower than the current
-        #bit-rate's average transmission time."
+        #"that have not failed four successive times and that have a
+        # minimum packet transmission time lower than the current
+        # bit-rate's average transmission time."
         eligible = [r for i, r in rates.items()
                     if r.losslessTX < cavgTX and r.succFails < 4]
 
         if len(eligible) > 0:
-            sampleRate = random.choice(eligible).rate #select random rate from eligible
-            return [(ieee80211_to_idx(sampleRate), NRETRIES)]
+            sampleRate = random.choice(eligible)
+            return [(sampleRate.idx, NRETRIES)]
 
     #"Otherwise, send packet at the bit-rate that has the lowest avg
     # transmission time" Trusts that currRate is properly maintained
     # to be lowest avgTX
-    return [(ieee80211_to_idx(currRate), NRETRIES)]
+    return [(currRate.idx, NRETRIES)]
 
 
 #"When process f eedback() runs, it updates information that tracks
@@ -145,7 +134,7 @@ def process_feedback(status, timestamp, delay, tries):
     #"Calculate the transmission time for the packet based on the
     # bit-rate and number of retries using Equation 5.1 below."
 
-    tx = tx_time(bitrate, nretries, NBYTES)
+    tx = tx_time(tries[0][0], nretries, NBYTES)
 
     #"Look up the destination and add the transmission time to the
     # total transmission times for the bit-rate."
@@ -242,7 +231,7 @@ def calculateMin():
     global currRate, npkts, nsuccess
 
     #set current rate to the one w/ min avg tx time
-    c = rates[currRate]
+    c = rates[currRate.rate]
     if c.succFails > 4:
         c.avgTX = float("inf")
         #c = rates[1]
@@ -255,4 +244,4 @@ def calculateMin():
         if c.avgTX > r.avgTX and r.succFails < 4:
             c = r
 
-    currRate = c.rate
+    currRate = c
