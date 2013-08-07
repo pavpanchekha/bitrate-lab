@@ -7,7 +7,7 @@ from __future__ import division
 import random
 import common
 import math
-import collections
+from collections import namedtuple
 from common import ieee80211_to_idx
 
 packet_count = 0
@@ -15,7 +15,7 @@ sample_count = 0
 sample_deferred = 0
 
 # Rates
-rate_struct = collections.namedtuple("Rates", ["best", "next", "prob", "base"])
+rate_struct = namedtuple("Rates", ["best", "next", "prob", "base"])
 choices = rate_struct(12, 11, 2, 1)
 
 time_last_called = 0

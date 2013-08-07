@@ -1,9 +1,8 @@
 from __future__ import division
-import collections
+from collections import namedtuple
 import math
 
-BitRate = collections.namedtuple("BitRate", ["phy", "kbps", "user_kbps",
-                                             "code", "mbps"])
+BitRate = namedtuple("BitRate", ["phy", "kbps", "user_kbps", "code", "mbps"])
 
 # The 802.11, 802.11b, and 802.11g rates
 RATES = [

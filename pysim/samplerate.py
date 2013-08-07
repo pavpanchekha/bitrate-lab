@@ -6,7 +6,7 @@ from __future__ import division
 
 import random
 import common
-import collections
+from collections import namedtuple
 from common import ieee80211_to_idx
 
 # Constants: send 1500 bytes at a time, with 1 try each in the MRR
@@ -51,8 +51,7 @@ def tx_time(rix, retries, nbytes):
     return difs + backoff_r + \
         (retries + 1) * (sifs + ack + header + (nbytes * 8 / rate.mbps))
 
-Packet = collections.namedtuple("Packet", ["time_sent", "success",
-                                           "txTime", "rate"])
+Packet = namedtuple("Packet", ["time_sent", "success", "txTime", "rate"])
 
 class Rate:
     def __init__(self, rix):
