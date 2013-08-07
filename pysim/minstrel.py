@@ -3,7 +3,6 @@
 # 3.3.8 linux kernel. We assume multi-rate retry capabilities, so we omit 
 # the code for the non-mrr case. 
 
-from random import randint
 from random import choice 
 import common
 from common import ieee80211_to_idx
@@ -44,41 +43,7 @@ odfm = set([6, 9, 12, 18, 24, 36, 48, 54])
 * also include SIFS.
 */'''
 def tx_time(rate, length): #rate is Mbps, length in bytes
-    if rate in odfm:
-        '''* OFDM:
-        *
-        * N_DBPS = DATARATE x 4
-        * N_SYM = Ceiling((16+8xLENGTH+6) / N_DBPS)
-        *	(16 = SIGNAL time, 6 = tail bits)
-        * TXTIME = T_PREAMBLE + T_SIGNAL + T_SYM x N_SYM + Signal Ext
-        *
-        * T_SYM = 4 usec
-        * 802.11a - 17.5.2: aSIFSTime = 16 usec
-        * 802.11g - 19.8.4: aSIFSTime = 10 usec +
-        *	signal ext = 6 usec
-        */'''
-        dur = 16 # SIFS + signal ext */
-        dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
-        dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
-        dur += 4* (round((16+8*(length+4)+6)/(4*rate))+1) # T_SYM x N_SYM 
-
-    else:
-        '''
-        * 802.11b or 802.11g with 802.11b compatibility:
-        * 18.3.4: TXTIME = PreambleLength + PLCPHeaderTime +
-        * Ceiling(((LENGTH+PBCC)x8)/DATARATE). PBCC=0.
-        *
-        * 802.11 (DS): 15.3.3, 802.11b: 18.3.4
-        * aSIFSTime = 10 usec
-        * aPreambleLength = 144 usec or 72 usec with short preamble
-        * aPLCPHeaderLength = 48 usec or 24 usec with short preamble
-        *'''
-        dur = 10 # aSIFSTime = 10 usec 
-        dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
-        dur += round((8*(length + 4))/rate)+1
-    
-    return dur
-
+    return common.tx_time(ieee80211_to_idx(rate), length)
 
 class Packet:
     def __init__(self, time_sent, success, txTime, rate):
@@ -175,9 +140,8 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
     # 2  | Random rate      | Best throughput   | Next best throughput
     # 3  | Best probability | Best probability  | Best probability
     # 4  | Lowest Baserate  | Lowest baserate   | Lowest baserate
-    #if randint(1,100) <= 10:
     delta = (npkts*.1 - (np + nd/2.0))
-    if delta  > 0: #random!
+    if delta > 0: #random!
         #Analysis of information showed that the system was sampling too hard
         #at some rates. For those rates that never work (54mb, 500m range) 
         #there is no point in sending 10 sample packets (< 6 ms time). Consequently, 

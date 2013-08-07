@@ -119,7 +119,7 @@ def tx_time(rix, length=1200): #rix is index to RATES, length in bytes
         dur = 16 # SIFS + signal ext */
         dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
         dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
-        dur += 4* (round((16+8*(length+4)+6)/(4*mbps))+1) # T_SYM x N_SYM 
+        dur += 4 * (round((16+8*(length+4)+6)/(4*mbps))+1) # T_SYM x N_SYM
 
     else:
         '''
@@ -132,7 +132,7 @@ def tx_time(rix, length=1200): #rix is index to RATES, length in bytes
         * aPreambleLength = 144 usec or 72 usec with short preamble
         * aPLCPHeaderLength = 48 usec or 24 usec with short preamble
         *'''
-        dur = 10 # aSIFSTime = 10 usec 
+        dur = 10 # aSIFSTime = 10 usec
         dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
         dur += round((8*(length + 4))/mbps)+1
     

@@ -3,6 +3,7 @@ import common
 
 RATE=float(os.environ["RATE"]) if "RATE" in os.environ else 1
 
+# Read the rate as a Mbps value and convert it to an index
 try:
     IDX = common.ieee80211_to_idx(RATE)
 except ValueError:
