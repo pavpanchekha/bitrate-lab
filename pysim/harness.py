@@ -180,6 +180,6 @@ if __name__ == "__main__":
         tries, successes = info
         if not tries: continue
 
-        mbps = common.RATES[rate_idx][-1] / 2
+        mbps = common.RATES[rate_idx].dot11_rate
         print("{:>5} Mbps : {:>4} tries ({:.0%} success rate)".format(
             mbps, tries, successes/tries))
