@@ -7,25 +7,24 @@ import random
 
 DEBUG = "DEBUG" in os.environ
 
-WINDOW = 1e7 # 10ms
-
 def load_data(source):
     return eval(open(source, "rt").read())
 
+WINDOW = 1e7 # 10ms
 LUOPS = 0
 def packet_stats(data, cache, time, rate):
     global LUOPS
-    
+
     txs = []
 
     while not txs:
         idx, w = cache[rate]
         cache[rate][0] = 0
-        
+
         for i in range(idx, len(data[rate])):
             t, success, delay = data[rate][i]
             LUOPS += 1
-            
+
             if abs(t - time) < w:
                 txs.append((success, delay))
                 if not cache[rate][0]:
@@ -37,10 +36,37 @@ def packet_stats(data, cache, time, rate):
 
         cache[rate][1] *= 2
 
-    successful = [tx[1] for tx in txs if tx[0]]
+    successful = [tx for tx in txs if tx[0]]
 
-    return (len(successful) / len(txs), 
-            sum(successful) / sum([tx[1] for tx in txs]))
+    return len(successful) / len(txs)
+
+
+# The test harness uses a calculation of transmission time based on
+# that in the SampleRate paper
+BACKOFF = { "ofdm": [0], "ds": [0], "dsss": [0] }
+for i in range(5, 11):
+    BACKOFF["ds"].append(int(((2**i) - 1) * (20 / 2)))
+for i in range(5, 11):
+    BACKOFF["dsss"].append(int(((2**i) - 1) * (9 / 2)))
+for i in range(4, 11):
+    BACKOFF["ofdm"].append(int(((2**i) - 1) * (9 / 2)))
+
+def backoff(rix, attempt):
+    return BACKOFF[common.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)]
+
+def difs(rix):
+    version = "g" if common.RATES[rix].phy == "ofdm" else "b"
+    return 50 if version == "b" else 28
+
+def tx_time(rix, nbytes):
+    # From the SampleRate paper.  See samplerate.py for annotated version.
+    bitrate = common.RATES[rix].dot11_rate
+    version = "g" if common.RATES[rix].phy == "ofdm" else "b"
+    sifs = 10 if version == "b" else 9
+    ack = 304 # Somehow 6mb acks aren't used
+    header = 192 if bitrate == 1 else 96 if version == "b" else 20
+
+    return (sifs + ack + header + (nbytes * 8 / bitrate)) * 1000 # 1000 = us / ns
 
 class Harness:
     def __init__(self, data, choose_rate, push_statistics):
@@ -58,14 +84,14 @@ class Harness:
         self.attempts = 0
 
     def send_one(self, rate, is_success):
-        delay = common.tx_time(rate, 1, 1500)
+        delay = tx_time(rate, 1500)
 
         if is_success:
-            delay += common.difs(rate)
+            delay += difs(rate)
             self.attempts = 0
         else:
             self.attempts += 1
-            delay += common.backoff(rate, self.attempts)
+            delay += backoff(rate, self.attempts)
 
         self.histogram[rate][0] += 1
         self.histogram[rate][1] += 1 if is_success else 0
@@ -85,7 +111,7 @@ class Harness:
         tot_tries = []
         tot_status = None
         for (rate, tries) in rate_arr:
-            p_success, a_delay = packet_stats(self.data, self.cache, self.clock, rate)
+            p_success = packet_stats(self.data, self.cache, self.clock, rate)
 
             s_tries = 0
             succeeded = False
@@ -168,7 +194,7 @@ if __name__ == "__main__":
     module = __import__(alg)
     harness = Harness(data, module.apply_rate, module.process_feedback)
     time, good, bad = harness.run()
-    
+
     if DEBUG: print()
 
     print("Simulation ran with {} LUOPS".format(LUOPS))

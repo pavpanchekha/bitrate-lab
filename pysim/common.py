@@ -85,35 +85,3 @@ class BalancedEWMA:
             return int(self.val * 18000)
         else:
             return None
-
-# The average back-off period, in microseconds, for up to 7 attempts
-# of a 802.11b unicast packet.
-
-BACKOFF = { "ofdm": [0], "ds": [0], "dsss": [0] }
-for i in range(5, 11):
-    BACKOFF["ds"].append(int(((2**i) - 1) * (20 / 2)))
-for i in range(5, 11):
-    BACKOFF["dsss"].append(int(((2**i) - 1) * (9 / 2)))
-for i in range(4, 11):
-    BACKOFF["ofdm"].append(int(((2**i) - 1) * (9 / 2)))
-
-def backoff(rix, attempt):
-    return BACKOFF[RATES[rix].phy][min(attempt, len(BACKOFF) - 1)]
-
-def difs(rix):
-    version = "g" if RATES[rix].phy == "ofdm" else "b"
-    return 50 if version == "b" else 28
-
-def tx_time(rix, tries, nbytes):
-    # From the SampleRate paper.  See samplerate.py for annotated version.
-    bitrate = RATES[rix].dot11_rate
-    version = "g" if RATES[rix].phy == "ofdm" else "b"
-    sifs = 10 if version == "b" else 9
-    ack = 304 # Somehow 6mb acks aren't used
-    header = 192 if bitrate == 1 else 96 if version == "b" else 20
-    
-    assert tries > 0, "Cannot try a non-positive number of times"
-
-    us = tries * (sifs + ack + header + (nbytes * 8 / bitrate))
-    return us * 1000
-
