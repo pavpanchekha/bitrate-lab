@@ -170,14 +170,7 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
             random = choice(list(rates))
 
         if random < bestThruput:
-            r = [(ieee80211_to_idx(bestThruput),
-                     rates[bestThruput].adjusted_retry_count),
-                    (ieee80211_to_idx(random),
-                     rates[random].adjusted_retry_count), 
-                    (ieee80211_to_idx(bestProb),
-                     rates[bestProb].adjusted_retry_count), 
-                    (ieee80211_to_idx(lowestRate),
-                     rates[lowestRate].adjusted_retry_count)]
+            chain = [bestThruput, random, bestProb, lowestRate]
             ''' FROM KERNEL:
             /* Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark        
             * packets that have the sampling rate deferred to the      
@@ -195,24 +188,14 @@ def apply_rate(cur_time): #cur_time is in nanoseconds
                 if rates[random].sample_limit > 0:
                     rates[random].sample_limit -= 1
             
-            r = [(ieee80211_to_idx(random),
-                      rates[random].adjusted_retry_count), 
-                    (ieee80211_to_idx(bestThruput),
-                     rates[bestThruput].adjusted_retry_count),
-                    (ieee80211_to_idx(bestProb),
-                     rates[bestProb].adjusted_retry_count), 
-                    (ieee80211_to_idx(lowestRate),
-                     rates[lowestRate].adjusted_retry_count)]
+            chain = [random, bestThruput, bestProb, lowestRate]
     
     else:     #normal
-        r = [(ieee80211_to_idx(bestThruput),
-              rates[bestThruput].adjusted_retry_count), 
-             (ieee80211_to_idx(nextThruput),
-              rates[nextThruput].adjusted_retry_count), 
-             (ieee80211_to_idx(bestProb),
-              rates[bestProb].adjusted_retry_count), 
-             (ieee80211_to_idx(lowestRate),
-              rates[lowestRate].adjusted_retry_count)]
+        chain = [bestThruput, nextThruput, bestProb, lowestRate]
+
+    mrr = [(ieee80211_to_idx(rate), rates[rate].adjusted_retry_count)
+           for rate in chain]
+
     return r
         
 #status: true if packet was rcvd successfully
