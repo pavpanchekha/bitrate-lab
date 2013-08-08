@@ -1,5 +1,5 @@
-import os
 import rates
+import os
 
 RATE=float(os.environ["RATE"]) if "RATE" in os.environ else 1
 
@@ -13,8 +13,24 @@ except ValueError:
 else:
     print("Running at rate %r Mbps..." % RATE)
 
-def apply_rate(time):
-    return [(IDX, 4)] * 4
+class BitrateAlgorithm(object):
+    class Rate(object):
+        def __init__(self, rix, info):
+            self.idx = rix
+            self.info = info
+            self.mbps = info.mbps
 
-def process_feedback(status, timestamp, delay, tries):
-    pass
+    def __init__(self):
+        self.RATES = [self.Rate(rix, info) for rix, info in enumerate(rates.RATES)]
+
+    def apply_rate(self, timestamp):
+        return [(IDX, 1)]
+
+    def process_feedback(self, status, timestamp, delay, tries):
+        pass
+
+def initialize(cls):
+    inst = cls()
+    return inst.apply_rate, inst.process_feedback
+
+apply_rate, process_feedback = initialize(BitrateAlgorithm)
