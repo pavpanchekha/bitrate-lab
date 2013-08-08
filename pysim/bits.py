@@ -35,7 +35,9 @@ def tx_time(rix, prob, nbytes):
     txtime = tx_lossless(rix, nbytes)
     score = 0
     likeliness = 1
-    for i in range(0, 10):
+    if prob < .05:
+        return float('inf')
+    for i in range(0, int(1 / prob)):
         score += likeliness * prob * (txtime + difs(rix))
         txtime += txtime + backoff(rix, i + 1)
         likeliness *= (1 - prob)

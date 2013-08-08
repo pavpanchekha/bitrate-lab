@@ -31,6 +31,10 @@ class Beta(Alpha):
             if self.samplerate > 1e9:
                 self.samplerate = 1e9
 
+        def report_actual(self, time, status):
+            Alpha.Rate.report_actual(self, time, status)
+            self.samplerate = self.samplerate_normal
+
         def __repr__(self):
             return "<Rate {} p={:.3f} sr={:.3f}>".format(
                 self.mbps, self.probability, self.samplerate/1e9)

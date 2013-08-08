@@ -1,144 +1,17 @@
-Running with random seed 4677392409728624264
+Running with random seed 8789661596006929868
 Running at rate 1 Mbps...
-    [0] =  <Rate 48.0 p=1.000 sr=0.300>
-    [0] =  <Rate 54.0 p=0.946 sr=0.219>
-    [0] =  <Rate 36.0 p=1.000 sr=0.300>
-    [0] =  <Rate 48.0 p=0.890 sr=0.213>
-    [0] =  <Rate 54.0 p=0.836 sr=0.155>
-    [0] =  <Rate 24.0 p=1.000 sr=0.300>
-    [0] =  <Rate 36.0 p=0.792 sr=0.206>
-    [0] =  <Rate 48.0 p=0.738 sr=0.146>
-    [0] =  <Rate 18.0 p=1.000 sr=0.300>
-    [0] =  <Rate 54.0 p=0.694 sr=0.103>
-    [0] =  <Rate 12.0 p=1.000 sr=0.300>
-    [0] =  <Rate 11.0 p=1.000 sr=0.300>
-    [0] =  <Rate 12.0 p=0.886 sr=0.219>
-    [0] =  <Rate 9.0 p=1.000 sr=0.300>
-    [0] =  <Rate 24.0 p=0.674 sr=0.177>
-    [0] =  <Rate 12.0 p=0.816 sr=0.156>
-    [0] =  <Rate 36.0 p=0.612 sr=0.122>
-    [0] =  <Rate 48.0 p=0.570 sr=0.086>
-    [0] =  <Rate 6.0 p=1.000 sr=0.300>
-    [0] =  <Rate 6.0 p=1.000 sr=0.300>
-    [0] =  <Rate 18.0 p=0.703 sr=0.126>
-    [0] =  <Rate 18.0 p=0.989 sr=0.126>
-    [0] =  <Rate 18.0 p=0.998 sr=0.126>
-    [0] =  <Rate 18.0 p=1.000 sr=0.126>
-    [0] =  <Rate 18.0 p=1.000 sr=0.129>
-    [0] =  <Rate 18.0 p=1.000 sr=0.146>
-    [0] =  <Rate 18.0 p=1.000 sr=0.179>
-    [0] =  <Rate 18.0 p=1.000 sr=0.196>
-    [0] =  <Rate 18.0 p=1.000 sr=0.196>
-    [0] =  <Rate 18.0 p=1.000 sr=0.245>
-    [0] =  <Rate 18.0 p=1.000 sr=0.275>
-    [0] =  <Rate 18.0 p=1.000 sr=0.308>
-    [0] =  <Rate 18.0 p=1.000 sr=0.332>
-    [0] =  <Rate 18.0 p=1.000 sr=0.332>
-    [0] =  <Rate 18.0 p=1.000 sr=0.352>
-    [0] =  <Rate 18.0 p=1.000 sr=0.353>
-    [0] =  <Rate 18.0 p=1.000 sr=0.376>
-    [0] =  <Rate 18.0 p=1.000 sr=0.399>
-    [0] =  <Rate 18.0 p=1.000 sr=0.422>
-    [0] =  <Rate 18.0 p=1.000 sr=0.433>
-    [0] =  <Rate 18.0 p=1.000 sr=0.438>
-    [0] =  <Rate 18.0 p=1.000 sr=0.507>
-    [0] =  <Rate 18.0 p=1.000 sr=0.547>
-    [0] =  <Rate 18.0 p=1.000 sr=0.589>
-    [0] =  <Rate 18.0 p=1.000 sr=0.685>
-    [0] =  <Rate 12.0 p=0.995 sr=0.047>
-    [0] =  <Rate 12.0 p=1.000 sr=0.104>
-    [0] =  <Rate 12.0 p=1.000 sr=0.381>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 18.0 p=0.840 sr=0.423>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 12.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=0.510>
-    [0] =  <Rate 6.0 p=1.000 sr=0.510>
-    [0] =  <Rate 9.0 p=0.872 sr=0.001>
-    [0] =  <Rate 6.0 p=1.000 sr=0.582>
-    [0] =  <Rate 6.0 p=1.000 sr=0.582>
-    [0] =  <Rate 9.0 p=0.901 sr=0.001>
-    [0] =  <Rate 6.0 p=1.000 sr=0.652>
-    [0] =  <Rate 6.0 p=1.000 sr=0.652>
-    [0] =  <Rate 9.0 p=0.823 sr=0.000>
-    [0] =  <Rate 6.0 p=1.000 sr=0.719>
-    [0] =  <Rate 6.0 p=1.000 sr=0.785>
-    [0] =  <Rate 9.0 p=0.789 sr=0.000>
-    [0] =  <Rate 6.0 p=1.000 sr=0.849>
-    [0] =  <Rate 6.0 p=1.000 sr=0.849>
-    [0] =  <Rate 6.0 p=1.000 sr=0.911>
-    [0] =  <Rate 6.0 p=1.000 sr=0.971>
-    [0] =  <Rate 18.0 p=0.671 sr=0.149>
-    [0] =  <Rate 18.0 p=0.671 sr=0.149>
-    [0] =  <Rate 6.0 p=1.000 sr=0.971>
-    [0] =  <Rate 9.0 p=0.784 sr=0.000>
-    [0] =  <Rate 6.0 p=1.000 sr=0.971>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 9.0 p=0.806 sr=0.004>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 9.0 p=0.881 sr=0.001>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 9.0 p=0.906 sr=0.001>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 6.0 p=1.000 sr=1.000>
-    [0] =  <Rate 9.0 p=0.953 sr=0.000>
-Simulation ran with 36523 LUOPS
-[summary] 3.01 s to send 1969 packets (and 199 failures)
-Average packet took 1.527 ms / achieved 7.856 Mbps
-  1.0 Mbps :      7 tries (43% success;    0.1s total)
-  2.0 Mbps :      7 tries (86% success;    0.0s total)
+Simulation ran with 35891 LUOPS
+[summary] 3.01 s to send 2042 packets (and 249 failures)
+Average packet took 1.473 ms / achieved 8.146 Mbps
+  1.0 Mbps :     10 tries (60% success;    0.1s total)
+  2.0 Mbps :      8 tries (62% success;    0.1s total)
   5.5 Mbps :      8 tries (100% success;    0.0s total)
- 11.0 Mbps :     18 tries ( 0% success;    0.0s total)
-  6.0 Mbps :    136 tries (100% success;    0.3s total)
-  9.0 Mbps :    128 tries (48% success;    0.2s total)
- 12.0 Mbps :   1167 tries (99% success;    1.6s total)
- 18.0 Mbps :    609 tries (99% success;    0.6s total)
- 24.0 Mbps :     21 tries ( 0% success;    0.0s total)
- 36.0 Mbps :     22 tries ( 0% success;    0.0s total)
- 48.0 Mbps :     19 tries ( 0% success;    0.0s total)
- 54.0 Mbps :     26 tries ( 0% success;    0.0s total)
+ 11.0 Mbps :     23 tries ( 0% success;    0.0s total)
+  6.0 Mbps :     78 tries (100% success;    0.2s total)
+  9.0 Mbps :     27 tries (44% success;    0.0s total)
+ 12.0 Mbps :   1130 tries (99% success;    1.5s total)
+ 18.0 Mbps :    880 tries (93% success;    0.9s total)
+ 24.0 Mbps :     16 tries ( 0% success;    0.0s total)
+ 36.0 Mbps :     34 tries ( 0% success;    0.0s total)
+ 48.0 Mbps :     42 tries ( 0% success;    0.0s total)
+ 54.0 Mbps :     35 tries ( 0% success;    0.0s total)

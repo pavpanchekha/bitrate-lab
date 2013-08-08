@@ -12,7 +12,8 @@ class Alpha(BitrateAlgorithm):
         def __init__(self, rix, info):
             BitrateAlgorithm.Rate.__init__(self, rix, info)
             self.probability = 1.0
-            self.samplerate = 3e8 # As per Minstrel
+            self.samplerate = 3e8
+            self.samplerate_normal = self.samplerate
             self.decayrate  = 10 * self.tx_time(.1) # Per millisecond
             
             # Time of next sample
@@ -26,7 +27,7 @@ class Alpha(BitrateAlgorithm):
             self.last_sample = time
 
             self.probability = ewma(self.probability, 1.0 if status else 0.0,
-                                    timespan / self.samplerate)
+                                    timespan / self.samplerate_normal)
 
         def init(self, time):
             self.next_sample = time + (random.random() + .5) * self.samplerate
