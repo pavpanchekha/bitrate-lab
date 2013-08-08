@@ -6,7 +6,7 @@ RATE=float(os.environ["RATE"]) if "RATE" in os.environ else 1
 # Read the rate as a Mbps value and convert it to an index
 try:
     IDX = [i for i, r in enumerate(rates.RATES) if r.mbps == RATE][0]
-except ValueError:
+except IndexError:
     opts = [str(rate.mbps) for rate in rates.RATES]
     print("Invalid rate.  Options are: {}".format(", ".join(opts)))
     exit()

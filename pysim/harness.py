@@ -229,4 +229,4 @@ if __name__ == "__main__":
         print(template.format(mbps, tries, successes/tries, total_t))
 
     if len(sys.argv) > 3:
-        open(sys.argv[3], "wt").write(repr(harness.log))
+        open(sys.argv[3], "wt").write(repr((alg, harness.log)))
