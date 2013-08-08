@@ -19,7 +19,7 @@ def badness(rix, prob):
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
-        print("USAGE: python draw_trace.py [datafile]")
+        print("USAGE: python draw_trace.py <datafile> [log]")
         exit()
 
     datfile = sys.argv[1]
@@ -45,6 +45,15 @@ if __name__ == "__main__":
     ax.set_ylim(0, 11)
 
     ax.imshow(img, cmap=cm.Blues, interpolation='nearest', aspect="auto")
-    ax.plot(range(width), best, 'r', linewidth=2)
+    ax.plot(range(width), best, 'g', linewidth=2)
+
+    if len(sys.argv) > 2:
+        log = eval(open(sys.argv[2], "rt").read())
+        good_x = [(t - start) / (end - start) * width for t, rix, stat in log if stat]
+        good_y = [rix for t, rix, stat in log if stat]
+        bad_x  = [(t - start) / (end - start) * width for t, rix, stat in log if not stat]
+        bad_y  = [rix for t, rix, stat in log if not stat]
+        ax.plot(good_x, good_y, 'yo')
+        ax.plot(bad_x, bad_y, 'ro')
 
     pylab.show()

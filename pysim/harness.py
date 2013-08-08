@@ -81,8 +81,10 @@ class Harness:
         self.histogram = [[0, 0, 0, 0, 0] for i in rates.RATES]
 
         self.attempts = 0
+        self.log = []
 
     def send_one(self, rate, is_success):
+        self.log.append((self.clock, rate, is_success))
         delay = tx_time(rate, 1500)
         rateinfo = self.histogram[rate]
 
@@ -122,7 +124,9 @@ class Harness:
             for i in range(tries):
                 success = random.random() < p_success
                 s_tries += 1
-                tot_delay += self.send_one(rate, success)
+                delay = self.send_one(rate, success)
+                tot_delay += delay
+                self.clock += delay
 
                 if success:
                     succeeded = True
@@ -145,7 +149,6 @@ class Harness:
 
         self.push_statistics(tot_status, self.clock, tot_delay, tot_tries)
 
-        self.clock += tot_delay
         return tot_status
 
     def run(self):
@@ -187,11 +190,13 @@ if __name__ == "__main__":
         alg = sys.argv[1]
         data_file = sys.argv[2]
     else:
-        print("USAGE: harness.py <algorithm> <data-file> [seed]")
+        print("USAGE: harness.py <algorithm> <data-file> [log-file]")
+        print()
+        print("ENV:   SEED    The random-number seed")
         sys.exit()
 
-    if len(sys.argv) >= 4:
-        seed = int(sys.argv[3])
+    if "SEED" in os.environ:
+        seed = int(os.environ["SEED"])
     else:
         seed = random.randint(0, sys.maxsize)
 
@@ -222,3 +227,6 @@ if __name__ == "__main__":
         mbps = rates.RATES[rate_idx].mbps
         template = "{:>5} Mbps : {:>6} tries ({:>3.0%} success; {:>6.1f}s total)"
         print(template.format(mbps, tries, successes/tries, total_t))
+
+    if len(sys.argv) > 3:
+        open(sys.argv[3], "wt").write(repr(harness.log))
