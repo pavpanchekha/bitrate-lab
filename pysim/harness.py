@@ -156,7 +156,7 @@ class Harness:
 
         good = 0
         bad = 0
-        print("Please wait, running simulation:     ", end="")
+        print("Please wait, running simulation:     ", end="", file=sys.stderr)
         lenlast = 0
         try:
             old_pct = None
@@ -164,11 +164,11 @@ class Harness:
                 pct = int(100 * (self.clock-self.start) / (self.end-self.start))
 
                 if pct != old_pct:
-                    print("\b" * lenlast, end="")
+                    print("\b" * lenlast, end="", file=sys.stderr)
                     msg = "{: 3d}%, {}".format(pct, LUOPS)
                     lenlast = len(msg)
-                    print(msg, end="")
-                    sys.stdout.flush()
+                    print(msg, end="", file=sys.stderr)
+                    sys.stderr.flush()
 
                 old_pct = pct
 
@@ -179,7 +179,7 @@ class Harness:
                     bad += 1
         except KeyboardInterrupt as e:
             pass
-        print()
+        print(file=sys.stderr)
 
         time = self.clock - self.start
 
