@@ -1,6 +1,9 @@
 # This module implements the SampleRate bit rate selection algorithm
 # as outlined in John Bicket's MIT Master's Thesis.
 
+# The algorithm still has the same structure as the original, but is
+# wrapped in a class to allow overloading various components.
+
 from __future__ import division
 
 import random
