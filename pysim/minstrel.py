@@ -76,15 +76,14 @@ class Rate:
         self.throughput = 0 #in bits per second
         self.last_update = 0.0 #timestamp of last update, ns(?)
         self.probability = 0
-        self.succ_hist = 0 #total successes ever
-        self.att_hist = 0 #total xmission attempts ever
         self.success = 0  #number of successful xmissions in cur time interval
         self.attempts = 0 #number of attempted transmissions in cur time interval
         self.losslessTX = tx_time(self, 1200) #microseconds, pktsize 1200 in kernel,
         self.ack = tx_time(self, 10) #microseconds, assumes 1mbps ack rate
 
-        #what is the difference between these?
         self.sample_skipped = 0
+
+        #what is the difference between these?
         self.sample_limit = -1
         self.retry_count = 1
 
@@ -104,7 +103,8 @@ class Rate:
 
             self.retry_count += 1
             # 6000 == segment size
-            condition = (tx_time_ < 6000) and (self.retry_count  < MAX_RETRY)
+            condition = (tx_time_ < 6000) and (self.retry_count < MAX_RETRY)
+
         self.adjusted_retry_count = self.retry_count #Max retrans. used for probing
 
     def ewma(self, new, weight):
@@ -231,7 +231,7 @@ def process_feedback(status, timestamp, delay, tries):
 
             #if the packet was successful...
             if status and t == (len(tries)-1):
-                br.success = (br.success + 1)
+                br.success += 1
 
     #if we had the random rate second in the retry chain, and actually ended up
     #using it, increment the count and unset the flag
@@ -255,8 +255,6 @@ def update_stats(timestamp):
         if br.attempts: # The kernel wraps this check in an unlikely()
             br.sample_skipped = 0
             p = MINSTREL_FRAC(br.success, br.attempts)
-            br.succ_hist += br.success
-            br.att_hist += br.attempts
             br.ewma(p, EWMA_LEVEL)
         else:
             br.sample_skipped += 1
@@ -306,9 +304,3 @@ def update_stats(timestamp):
         bestProb = max(RATES, key=lambda br: br.probability)
 
     choices = rate_struct(bestThruput, nextThruput, bestProb, choices.base)
-
-# thru = p_success [0, 18000] / lossless xmit time in ms
-def throughput(psuccess, rtt):
-    if psuccess:
-        return psuccess*(1e6/rtt)
-    else: return 0
