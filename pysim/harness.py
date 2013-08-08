@@ -79,23 +79,28 @@ class Harness:
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
-        self.histogram = [[0, 0] for i in rates.RATES]
+        self.histogram = [[0, 0, 0, 0, 0] for i in rates.RATES]
 
         self.attempts = 0
 
     def send_one(self, rate, is_success):
         delay = tx_time(rate, 1500)
+        rateinfo = self.histogram[rate]
+
+        rateinfo[0] += 1 # total packets
+        rateinfo[1] += 1 if is_success else 0
+        rateinfo[2] += delay
 
         if is_success:
             delay += difs(rate)
             self.attempts = 0
         else:
             self.attempts += 1
-            delay += backoff(rate, self.attempts)
+            backoff_t = backoff(rate, self.attempts)
+            rateinfo[3] += backoff_t
+            delay += backoff_t
 
-        self.histogram[rate][0] += 1
-        self.histogram[rate][1] += 1 if is_success else 0
-
+        rateinfo[4] += delay
         return delay
 
     def send_packet(self):
@@ -152,14 +157,18 @@ class Harness:
         print("Please wait, running simulation:     ", end="")
         lenlast = 0
         try:
+            old_pct = None
             while self.clock < self.end:
                 pct = int(100 * (self.clock-self.start) / (self.end-self.start))
 
-                print("\b" * lenlast, end="")
-                msg = "{: 3d}%, {}".format(pct, LUOPS)
-                lenlast = len(msg)
-                print(msg, end="")
-                sys.stdout.flush()
+                if pct != old_pct:
+                    print("\b" * lenlast, end="")
+                    msg = "{: 3d}%, {}".format(pct, LUOPS)
+                    lenlast = len(msg)
+                    print(msg, end="")
+                    sys.stdout.flush()
+
+                old_pct = pct
 
                 status = self.send_packet()
                 if status:
@@ -203,9 +212,13 @@ if __name__ == "__main__":
     print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / good / 1e6, throughput))
 
     for rate_idx, info in enumerate(harness.histogram):
-        tries, successes = info
+        tries, successes, sending_t, backoff_t, total_t = info
         if not tries: continue
 
+        sending_t /= 1e9
+        backoff_t /= 1e9
+        total_t /= 1e9
+
         mbps = rates.RATES[rate_idx].mbps
-        print("{:>5} Mbps : {:>4} tries ({:.0%} success rate)".format(
-            mbps, tries, successes/tries))
+        template = "{:>5} Mbps : {:>6} tries ({:>3.0%} success; {:>6.1f}s total)"
+        print(template.format(mbps, tries, successes/tries, total_t))
