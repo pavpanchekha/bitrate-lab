@@ -1,0 +1,73 @@
+Running with random seed 7380317934282358661
+Running at rate 1 Mbps...
+    [0] =  <Rate 48.0 p=1.000 sr=0.300>
+    [0] =  <Rate 54.0 p=0.946 sr=0.219>
+    [0] =  <Rate 36.0 p=1.000 sr=0.300>
+    [0] =  <Rate 48.0 p=0.890 sr=0.213>
+    [0] =  <Rate 54.0 p=0.836 sr=0.155>
+    [0] =  <Rate 24.0 p=1.000 sr=0.300>
+    [0] =  <Rate 36.0 p=0.792 sr=0.206>
+    [0] =  <Rate 48.0 p=0.738 sr=0.146>
+    [0] =  <Rate 18.0 p=1.000 sr=0.300>
+    [0] =  <Rate 18.0 p=1.000 sr=0.300>
+    [0] =  <Rate 18.0 p=1.000 sr=0.300>
+    [0] =  <Rate 18.0 p=1.000 sr=0.300>
+    [0] =  <Rate 18.0 p=1.000 sr=0.300>
+    [0] =  <Rate 18.0 p=1.000 sr=0.301>
+    [0] =  <Rate 18.0 p=1.000 sr=0.343>
+    [0] =  <Rate 18.0 p=1.000 sr=0.363>
+    [0] =  <Rate 18.0 p=1.000 sr=0.388>
+    [0] =  <Rate 18.0 p=1.000 sr=0.437>
+    [0] =  <Rate 18.0 p=1.000 sr=0.474>
+    [0] =  <Rate 18.0 p=1.000 sr=0.577>
+    [0] =  <Rate 18.0 p=1.000 sr=0.596>
+    [0] =  <Rate 18.0 p=1.000 sr=0.599>
+    [0] =  <Rate 18.0 p=1.000 sr=0.649>
+    [0] =  <Rate 18.0 p=1.000 sr=0.649>
+    [0] =  <Rate 18.0 p=1.000 sr=0.656>
+    [0] =  <Rate 18.0 p=1.000 sr=0.688>
+    [0] =  <Rate 18.0 p=1.000 sr=0.689>
+    [0] =  <Rate 18.0 p=1.000 sr=0.689>
+    [0] =  <Rate 18.0 p=1.000 sr=0.689>
+    [0] =  <Rate 18.0 p=1.000 sr=0.862>
+    [0] =  <Rate 18.0 p=1.000 sr=0.864>
+    [0] =  <Rate 18.0 p=1.000 sr=0.965>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+    [0] =  <Rate 18.0 p=1.000 sr=1.000>
+Simulation ran with 41165 LUOPS
+[summary] 4.54 s to send 3933 packets (and 174 failures)
+Average packet took 1.155 ms / achieved 10.386 Mbps
+  1.0 Mbps :     18 tries (78% success;    0.2s total)
+  2.0 Mbps :     17 tries (65% success;    0.1s total)
+  5.5 Mbps :     10 tries (100% success;    0.0s total)
+ 11.0 Mbps :     10 tries (100% success;    0.0s total)
+  6.0 Mbps :     11 tries (91% success;    0.0s total)
+  9.0 Mbps :     19 tries (84% success;    0.0s total)
+ 12.0 Mbps :     31 tries ( 3% success;    0.0s total)
+ 18.0 Mbps :   3861 tries (100% success;    4.0s total)
+ 24.0 Mbps :     27 tries ( 0% success;    0.0s total)
+ 36.0 Mbps :     27 tries ( 0% success;    0.0s total)
+ 48.0 Mbps :     36 tries ( 0% success;    0.0s total)
+ 54.0 Mbps :     40 tries ( 0% success;    0.0s total)

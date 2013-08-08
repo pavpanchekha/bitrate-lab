@@ -20,6 +20,9 @@ class BitrateAlgorithm(object):
             self.info = info
             self.mbps = info.mbps
 
+        def __repr__(self):
+            return "<Rate {}>".format(self.mbps)
+
     def __init__(self):
         self.RATES = [self.Rate(rix, info) for rix, info in enumerate(rates.RATES)]
 

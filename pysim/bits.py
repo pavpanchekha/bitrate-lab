@@ -1,4 +1,8 @@
 import rates
+import os
+DEBUG = "DEBUG" in os.environ
+
+NRATES = len(rates.RATES)
 
 # The test harness uses a calculation of transmission time based on
 # that in the SampleRate paper

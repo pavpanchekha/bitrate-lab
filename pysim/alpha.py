@@ -13,7 +13,7 @@ class Alpha(BitrateAlgorithm):
             BitrateAlgorithm.Rate.__init__(self, rix, info)
             self.probability = 1.0
             self.samplerate = 3e8 # As per Minstrel
-            self.decayrate  = 10 * self.tx_lossless() # Per millisecond
+            self.decayrate  = 10 * self.tx_time(.1) # Per millisecond
             
             # Time of next sample
             self.next_sample = None
@@ -45,11 +45,14 @@ class Alpha(BitrateAlgorithm):
         def tx_time(self, nbytes=1500):
             return bits.tx_time(self.idx, self.probability, nbytes)
 
+        def __repr__(self):
+            return "<Rate {} p={:.3f}>".format(self.mbps, self.probability)
+
     def __init__(self):
         BitrateAlgorithm.__init__(self)
         self.was_sample = False
-        self.last_rate = None
         self.inited = False
+        self.rates_sorted = list(reversed(self.RATES))
 
 
     def apply_rate(self, timestamp):
@@ -65,14 +68,9 @@ class Alpha(BitrateAlgorithm):
             rate = random.choice(samplable_rates)
         else:
             self.was_sample = False
-            rate = min(self.RATES, key=self.Rate.tx_time)
-            if rate != self.last_rate:
-                self.switch_rate(self.last_rate, rate)
+            rate = self.rates_sorted[0]
 
         return [(rate.idx, 1)]
-
-    def switch_rate(self, old, new):
-        self.last_rate = new
 
     def process_feedback(self, status, timestamp, delay, tries):
         rix, _ = tries[0]
@@ -82,5 +80,7 @@ class Alpha(BitrateAlgorithm):
             rate.report_sample(timestamp, status)
         else:
             rate.report_actual(timestamp, status)
+
+        self.rates_sorted.sort(key=self.Rate.tx_time)
 
 apply_rate, process_feedback = initialize(Alpha)
