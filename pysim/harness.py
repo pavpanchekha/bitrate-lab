@@ -12,14 +12,14 @@ def load_data(source):
 
 WINDOW = 1e7 # 10ms
 LUOPS = 0
-def packet_stats(data, cache, time, rate):
+CACHE = [[0, WINDOW] for r in rates.RATES]
+def packet_stats(data, time, rate):
     global LUOPS
 
     txs = []
-
     while not txs:
-        idx, w = cache[rate]
-        cache[rate][0] = 0
+        idx, w = CACHE[rate]
+        CACHE[rate][0] = 0
 
         for i in range(idx, len(data[rate])):
             t, success, delay = data[rate][i]
@@ -27,14 +27,14 @@ def packet_stats(data, cache, time, rate):
 
             if abs(t - time) < w:
                 txs.append((success, delay))
-                if not cache[rate][0]:
-                    cache[rate][0] = i
-                    cache[rate][1] = min(w / 1.5, WINDOW)
+                if not CACHE[rate][0]:
+                    CACHE[rate][0] = i
+                    CACHE[rate][1] = min(w / 1.5, WINDOW)
 
             if t > w + time:
                 break
 
-        cache[rate][1] *= 2
+        CACHE[rate][1] *= 2
 
     successful = [tx for tx in txs if tx[0]]
 
@@ -52,11 +52,11 @@ for i in range(4, 11):
     BACKOFF["ofdm"].append(int(((2**i) - 1) * (9 / 2)))
 
 def backoff(rix, attempt):
-    return BACKOFF[rates.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)]
+    return BACKOFF[rates.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)] * 1000
 
 def difs(rix):
     version = "g" if rates.RATES[rix].phy == "ofdm" else "b"
-    return 50 if version == "b" else 28
+    return (50 if version == "b" else 28) * 1000
 
 def tx_time(rix, nbytes):
     # From the SampleRate paper.  See samplerate.py for annotated version.
@@ -72,7 +72,6 @@ class Harness:
     def __init__(self, data, choose_rate, push_statistics):
         self.start = data[0]
         self.data = data[1]
-        self.cache = [[0, WINDOW] for i in self.data]
         self.end = data[2]
 
         self.clock = data[0]
@@ -116,7 +115,7 @@ class Harness:
         tot_tries = []
         tot_status = None
         for (rate, tries) in rate_arr:
-            p_success = packet_stats(self.data, self.cache, self.clock, rate)
+            p_success = packet_stats(self.data, self.clock, rate)
 
             s_tries = 0
             succeeded = False
@@ -199,6 +198,7 @@ if __name__ == "__main__":
     random.seed(seed)
     print("Running with random seed {}".format(seed))
 
+    os.environ["DATA"] = data_file
     data = load_data(data_file)
     module = __import__(alg)
     harness = Harness(data, module.apply_rate, module.process_feedback)
