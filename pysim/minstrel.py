@@ -243,7 +243,7 @@ def process_feedback(status, timestamp, delay, tries):
         sample_deferred -= 1
 
     if timestamp - time_last_called >= 1e8:
-        self.update_stats(timestamp)
+        update_stats(timestamp)
 
 
 def update_stats(timestamp):
