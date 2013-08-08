@@ -8,15 +8,10 @@ import random
 import rates
 import math
 from collections import namedtuple
-from rates import ieee80211_to_idx
 
 packet_count = 0
 sample_count = 0
 sample_deferred = 0
-
-# Rates
-rate_struct = namedtuple("Rates", ["best", "next", "prob", "base"])
-choices = rate_struct(12, 11, 2, 1)
 
 time_last_called = 0
 probeFlag = False
@@ -33,7 +28,7 @@ def MINSTREL_FRAC(val, div):
 def MINSTREL_TRUNC(val):
     return val >> MINSTREL_SCALE
 
-def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
+def tx_time(rate, length=1200): #rix is index to RATES, length in bytes
     # Adapted from 802.11 util.c ieee80211_frame_duration()
 
     #"calculate duration (in microseconds, rounded up to next higher
@@ -41,7 +36,7 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
     # len bytes (does not include FCS) at the given rate. Duration will
     # also include SIFS."
 
-    rateinfo = rates.RATES[rates.ieee80211_to_idx(mbps)]
+    rateinfo = rate.info
 
     if rateinfo.phy == "ofdm":
         #"OFDM:
@@ -56,7 +51,7 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
         dur = 16 # SIFS + signal ext */
         dur += 16 # 17.3.2.3: T_PREAMBLE = 16 usec */
         dur += 4 # 17.3.2.3: T_SIGNAL = 4 usec */
-        dur += 4 * (math.ceil((16+8*(length+4)+6)/(4*mbps))+1) # T_SYM x N_SYM
+        dur += 4 * (math.ceil((16+8*(length+4)+6)/(4*rateinfo.mbps))+1) # T_SYM x N_SYM
 
     else:
         #"802.11b or 802.11g with 802.11b compatibility:
@@ -69,13 +64,15 @@ def tx_time(mbps, length=1200): #rix is index to RATES, length in bytes
         # aPLCPHeaderLength = 48 usec or 24 usec with short preamble"
         dur = 10 # aSIFSTime = 10 usec
         dur += (72 + 24) #using short preamble, otw we'd use (144 + 48)
-        dur += math.ceil((8*(length + 4))/mbps)+1
+        dur += math.ceil((8*(length + 4))/rateinfo.mbps)+1
 
     return dur
 
 class Rate:
-    def __init__(self, rate):
-        self.rate = rate #in mbps
+    def __init__(self, rix):
+        self.idx = rix
+        self.info = rates.RATES[rix]
+        self.rate = self.info.mbps
         self.throughput = 0 #in bits per second
         self.last_update = 0.0 #timestamp of last update, ns(?)
         self.probability = 0
@@ -83,8 +80,8 @@ class Rate:
         self.att_hist = 0 #total xmission attempts ever
         self.success = 0  #number of successful xmissions in cur time interval
         self.attempts = 0 #number of attempted transmissions in cur time interval
-        self.losslessTX = tx_time(rate, 1200) #microseconds, pktsize 1200 in kernel,
-        self.ack = tx_time(rate, 10) #microseconds, assumes 1mbps ack rate
+        self.losslessTX = tx_time(self, 1200) #microseconds, pktsize 1200 in kernel,
+        self.ack = tx_time(self, 10) #microseconds, assumes 1mbps ack rate
 
         #what is the difference between these?
         self.sample_skipped = 0
@@ -121,8 +118,12 @@ class Rate:
 # DSSS for 1 and 2 Mbit/s. Even though 802.11g operates in the same
 # frequency band as 8# 02.11b, it can achieve higher data rates
 # because of its heritage to 802.11a.
-RATES = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+#RATES = dict((r, Rate(r)) for r in [1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54])
+RATES = [Rate(rix) for rix in range(len(rates.RATES))]
 
+# Chosen rates
+rate_struct = namedtuple("Rates", ["best", "next", "prob", "base"])
+choices = rate_struct(RATES[11], RATES[10], RATES[1], RATES[0])
 
 #"10 times a second (this frequency is alterable by changing the
 # driver code) a timer fires, which evaluates the statistics
@@ -185,13 +186,14 @@ def apply_rate(cur_time):
         # See net/mac80211/rc80211_minstrel.c :: init_sample_table
 
         # TODO: Use the mechanism the kernel uses
-        randrate = random.choice(list(RATES.keys()))
+        randrate = random.choice(RATES)
 
 	#"Decide if direct ( 1st mrr stage) or indirect (2nd mrr
 	# stage) rate sampling method should be used.  Respect such
 	# rates that are not sampled for 20 interations."
 
-        if randrate < choices.best and RATES[randrate].sample_skipped < 20:
+        if randrate.rate < choices.best.rate and \
+           randrate.sample_skipped < 20:
             #"Only use IEEE80211_TX_CTL_RATE_CTRL_PROBE to mark
             # packets that have the sampling rate deferred to the
             # second MRR stage. Increase the sample counter only if
@@ -203,30 +205,27 @@ def apply_rate(cur_time):
 
             chain = [choices.best, randrate, choices.prob, choices.base]
         else:
-            if RATES[randrate].sample_limit != 0:
+            if randrate.sample_limit != 0:
                 sample_count += 1
-                if RATES[randrate].sample_limit > 0:
-                    RATES[randrate].sample_limit -= 1
+                if randrate.sample_limit > 0:
+                    randrate.sample_limit -= 1
 
             chain = [randrate, choices.best, choices.prob, choices.base]
 
     else:
         chain = [choices.best, choices.next, choices.prob, choices.base]
 
-    mrr = [(ieee80211_to_idx(rate), RATES[rate].adjusted_retry_count)
-           for rate in chain]
+    mrr = [(rate.idx, rate.adjusted_retry_count) for rate in chain]
 
     return mrr
 
 def process_feedback(status, timestamp, delay, tries):
     global packet_count, probeFlag, time_last_called, sample_deferred, sample_count
     for t in range(len(tries)):
-        (bitrate, br_tries) = tries[t]
-        if br_tries > 0:
-            bitrate = rates.RATES[bitrate].mbps
-            #if bitrate == 1:
+        (rix, br_tries) = tries[t]
 
-            br = RATES[bitrate]
+        if br_tries > 0:
+            br = RATES[rix]
             br.attempts = (br.attempts + br_tries)
             packet_count += br_tries
 
@@ -250,8 +249,8 @@ def process_feedback(status, timestamp, delay, tries):
 def update_stats(timestamp):
     global choices
 
-    for i, br in RATES.items():
-        usecs = tx_time(i)
+    for br in RATES:
+        usecs = tx_time(br)
 
         if br.attempts: # The kernel wraps this check in an unlikely()
             br.sample_skipped = 0
@@ -288,10 +287,9 @@ def update_stats(timestamp):
     br.last_update = timestamp
 
     #changed rates to rates_, changed rates to rates.values() -CJ
-    rates_by_tp = sorted(RATES.values(), key=lambda br: br.throughput,
-                         reverse=True)
-    bestThruput = rates_by_tp[0].rate
-    nextThruput = rates_by_tp[1].rate
+    rates_by_tp = sorted(RATES, key=lambda br: br.throughput, reverse=True)
+    bestThruput = rates_by_tp[0]
+    nextThruput = rates_by_tp[1]
 
     #"To determine the most robust rate (max_prob_rate) used at 3rd
     # mmr stage we distinct between two cases:
@@ -300,12 +298,12 @@ def update_stats(timestamp):
     # (2) if all success probabilities < 95%, the rate with highest
     # success probability is choosen as max_prob_rate"
 
-    if any(br.probability > MINSTREL_FRAC(95, 100) for br in RATES.values()):
-        good_rates = [br for br in RATES.values()
+    if any(br.probability > MINSTREL_FRAC(95, 100) for br in RATES):
+        good_rates = [br for br in RATES
                       if br.probability > MINSTREL_FRAC(95, 100)]
-        bestProb = max(good_rates, key=lambda br: br.throughput).rate
+        bestProb = max(good_rates, key=lambda br: br.throughput)
     else:
-        bestProb = max(RATES.values(), key=lambda br: br.probability).rate
+        bestProb = max(RATES, key=lambda br: br.probability)
 
     choices = rate_struct(bestThruput, nextThruput, bestProb, choices.base)
 
