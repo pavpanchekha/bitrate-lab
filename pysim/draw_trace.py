@@ -28,6 +28,7 @@ if __name__ == "__main__":
     start, rates, end = dat
 
     width = 100
+    harness.WINDOW = (end - start) / width
     img = numpy.zeros((len(rates), width))
     best = numpy.zeros(width)
 
@@ -42,7 +43,7 @@ if __name__ == "__main__":
 
     fig, ax = pylab.subplots()
     ax.set_xlim(0, width)
-    ax.set_ylim(0, 11)
+    ax.set_ylim(-.5, 11.5)
 
     ax.imshow(img, cmap=cm.Blues, interpolation='nearest', aspect="auto")
     ax.plot(range(width), best, 'g', linewidth=2)
