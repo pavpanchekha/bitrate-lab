@@ -36,7 +36,7 @@ class Alpha(BitrateAlgorithm):
             self.confidence += 1
             self.probability = ewma(self.probability, 1.0 if status else 0.0,
                                     timespan / self.samplerate_normal * \
-                                    1000 / self.confidence)
+                                    1000 / min(self.confidence, 1000))
             #print round(self.probability, 2)
 
             self.recalc_decay()
@@ -45,7 +45,7 @@ class Alpha(BitrateAlgorithm):
             timespan = time - self.last_actual
             self.probability = ewma(self.probability, 1 if status else 0,
                                     timespan / self.decayrate * \
-                                    1000 / (self.confidence + 1))
+                                    1000 / min(self.confidence + 1, 1000))
             self.last_actual = time
             self.recalc_decay()
 
