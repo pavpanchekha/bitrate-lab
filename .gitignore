@@ -7,3 +7,4 @@ __pycache__
 paper/*.aux
 paper/*.bbl
 paper/*.ent
+out/*

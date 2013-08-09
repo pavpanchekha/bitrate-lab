@@ -7,7 +7,7 @@ def ewma(old, new, weight):
     beta = EWMA_LEVEL / (1 - EWMA_LEVEL)
     return (old * beta + new * weight) / (beta + weight)
 
-class Alpha(BitrateAlgorithm):
+class P92Simple(BitrateAlgorithm):
     class Rate(BitrateAlgorithm.Rate):
         def __init__(self, rix, info):
             BitrateAlgorithm.Rate.__init__(self, rix, info)
@@ -99,4 +99,4 @@ class Alpha(BitrateAlgorithm):
 
         self.rates_sorted.sort(key=self.Rate.tx_time)
 
-apply_rate, process_feedback = initialize(Alpha)
+apply_rate, process_feedback = initialize(P92Simple)

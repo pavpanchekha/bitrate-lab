@@ -1,11 +1,11 @@
-from alpha import Alpha, ewma, EWMA_LEVEL
+from p92simple import P92Simple, ewma, EWMA_LEVEL
 from constant import initialize
 import bits
 
 SR_LEVEL = .25
 
-class Beta(Alpha):
-    class Rate(Alpha.Rate):
+class P92(P92Simple):
+    class Rate(P92Simple.Rate):
         def __init__(self, rix, info):
             Alpha.Rate.__init__(self, rix, info)
             self.last_sortchange = None
@@ -54,4 +54,4 @@ class Beta(Alpha):
         rate.report_sortchange(timestamp, oldpos, change)
         #if change: print "    [0] = ", self.rates_sorted[0]
 
-apply_rate, process_feedback = initialize(Beta)
+apply_rate, process_feedback = initialize(P92)
