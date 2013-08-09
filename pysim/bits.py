@@ -15,7 +15,11 @@ for i in range(4, 11):
     BACKOFF["ofdm"].append(int(((2**i) - 1) * (9 / 2)))
 
 def backoff(rix, attempt):
-    return BACKOFF[rates.RATES[rix].phy][min(attempt, len(BACKOFF) - 1)] * 1000
+    backoff_r = BACKOFF[rates.RATES[rix].phy]
+    return backoff_r[min(attempt, len(backoff_r) - 1)] * 1000
+
+def backoffs(rix):
+    return len(BACKOFF[rates.RATES[rix].phy])
 
 def difs(rix):
     version = "g" if rates.RATES[rix].phy == "ofdm" else "b"
@@ -35,11 +39,26 @@ def tx_time(rix, prob, nbytes):
     txtime = tx_lossless(rix, nbytes)
     score = 0
     likeliness = 1
-    if prob < .05:
-        return float('inf')
-    for i in range(0, int(1 / prob)):
+
+    if prob == 0: return float('inf')
+
+    for i in range(0, backoffs(rix)):
         score += likeliness * prob * (txtime + difs(rix))
         txtime += txtime + backoff(rix, i + 1)
         likeliness *= (1 - prob)
-    score += likeliness * (txtime + difs(rix))
+
+    # backoff(rix, i) is now constant, so we are really summing
+    #
+    #     Sum[p (1 - p)^k (t + d + k (t + b)), {k, 0, Infinity}]
+    #
+    # where p is prob, d is difs(rix), b is backoff(rix, i), and
+    # t is txtime_lossless
+
+    # This can be summed by splitting (t + d + k (t + b)), yielding
+    #
+    #    (t + d) + (t + b) / p
+
+    score += likeliness * ((txtime + difs(rix)) + \
+                           (txtime + backoff(rix, i+1)) / prob)
+
     return score
