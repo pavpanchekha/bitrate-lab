@@ -23,14 +23,14 @@ Once a trace is captured, it can be used to run various bitrate selection algori
 
     pypy harness.py samplerate ../data/test.dat
 
-will execute the SampleRate algorithm against the test data gathered in the previous section.  Using PyPy is recommended, since the simulation is CPU-intensive and since Python is not a particularly fast language.  Implementations of the SampleRate and Minstrel algorithms are provided, along with a research prototype named Minproved, which avoids some of the flaws of Minstrel and achieves a consistent speedup over it.  A comprehensive list of provided algorithms is:
+will execute the SampleRate algorithm against the test data gathered in the previous section.  Using PyPy is recommended, since the simulation is CPU-intensive and since Python is not a particularly fast language.  Implementations of the SampleRate and Minstrel algorithms are provided, along with a research prototype named `p92`, which is a simple but very fast bitrate adaptation algorithm.  A comprehensive list of provided algorithms is:
 
  + `constant`: Always uses a constant bitrate; use the `RATE` environment variable to control which.
  + `samplerate`: The SampleRate algorithm, as described in John Bicket's thesis.
- + `samplerate_retry`: A SampleRate variation that uses a multirate retry chain.
- + `samplerate_longer`: A SampleRate variation that allows more than 4 successive failures.
- + `minstrel`: The Minstrel algorithm, as found in Linux 3.8.6
- + `minproved`: A variant of Minstrel that corrects some flaws of Minstrel.
+ + `minstrel`: The Minstrel algorithm, as found in Linux 3.10.5.
+ + `p92simple` : A very simple but consistently-decent algorithm based on a few simple ideas.  Also a building block for `p92`
+ + `p92` : A very good rate control algorithm, usually achieving approximately 90% of optimal performance.
+ + `optimal` : Examines the full data set to always act optimally; used as a benchmark.
 
 Writing algorithms
 ------------------
@@ -41,7 +41,7 @@ It is relatively easy to write a new bitrate selection algorithm and test it.  A
 
 `process_feedback` receives four arguments: whether or not the packet send succeeded; the simulation time; the time to send (or not) the packet; and the number of attempts made at each rate as a multi-rate retry chain similar in format to the output of `apply_rate`.
 
-`constant.py` can serve as a simplistic model of how to write a selection algorithm.
+`constant.py` can serve as a simplistic model of how to write a selection algorithm.  It is somewhat over-complicated to provide a model of how to actually write a rate-control algorithm.  `p92simple.py` is an algorithm based on this model that is very simple is thus also a good model.
 
 What are the folders?
 ---------------------
