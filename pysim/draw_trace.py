@@ -27,7 +27,7 @@ if __name__ == "__main__":
     start, data, end = dat
     secs = (end - start) / 1e9
 
-    width = max(math.ceil(secs), 30)
+    width = max(math.ceil(secs), 30) * 10
     harness.WINDOW = (end - start) / width
     img = numpy.zeros((len(data), width))
     best = numpy.zeros(width)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         ax.plot(good_x, good_y, 'yo', alpha=alpha)
         ax.plot(bad_x, bad_y, 'ro', alpha=alpha)
 
-    ax.plot(numpy.arange(width) * secs / width, best, '#ff00ff', linewidth=3)
+    ax.plot(numpy.arange(width) * secs / width + .5 * secs / width, best, '#ff00ff', linewidth=3)
 
     ax.set_title(title)
     pylab.show()

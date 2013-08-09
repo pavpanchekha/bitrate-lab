@@ -23,13 +23,13 @@ class Alpha(BitrateAlgorithm):
             self.last_actual = None
 
         def init(self, time):
-            self.next_sample = time + (random.random() + .5) * self.samplerate
             self.last_sample = time
             self.last_actual = time
+            self.recalc_next_sample(time)
 
         def report_sample(self, time, status):
             timespan = time - self.last_sample
-            self.next_sample = time + (random.random() + .5) * self.samplerate
+            self.recalc_next_sample(time)
             self.last_sample = time
 
             #print self.mbps, self.confidence, status, round(self.probability, 2),
@@ -51,6 +51,9 @@ class Alpha(BitrateAlgorithm):
 
         def recalc_decay(self):
             self.decay_rate = 5 * self.tx_time()
+
+        def recalc_next_sample(self, time):
+            self.next_sample = time + (random.random() + .5) * self.samplerate
 
         def tx_lossless(self, nbytes=1500):
             return bits.tx_lossless(self.idx, nbytes)
