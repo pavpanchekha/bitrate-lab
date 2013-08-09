@@ -8,22 +8,12 @@ import matplotlib.ticker as ticker
 import rates
 import harness
 import random
+import bits
 
 perm = {info.code: i for i, info in
         enumerate(sorted(rates.RATES, key=lambda info: info.mbps))}
 rperm = {i: info.code for i, info in
          enumerate(sorted(rates.RATES, key=lambda info: info.mbps))}
-
-def badness(rix, prob):
-    txtime = harness.tx_time(rix, 1500)
-    score = 0
-    likeliness = 1
-    for i in range(0, 10):
-        score += likeliness * prob * (txtime + harness.difs(rix))
-        txtime += txtime + harness.backoff(rix, i + 1)
-        likeliness *= (1 - prob)
-    score += likeliness * (txtime + harness.difs(rix))
-    return score
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
@@ -37,7 +27,7 @@ if __name__ == "__main__":
     start, data, end = dat
     secs = (end - start) / 1e9
 
-    width = math.ceil(secs)
+    width = max(math.ceil(secs), 30)
     harness.WINDOW = (end - start) / width
     img = numpy.zeros((len(data), width))
     best = numpy.zeros(width)
@@ -47,7 +37,7 @@ if __name__ == "__main__":
     for i in range(0, width):
         t = (i + .5) / width * (end - start) + start
         ps = [harness.packet_stats(data, t, r) for r, _ in enumerate(data)]
-        badnesses = [badness(rix, p) / 1e6 for rix, p in enumerate(ps)]
+        badnesses = [bits.tx_time(rix, p, 1500) for rix, p in enumerate(ps)]
 
         best[i] = perm[numpy.argmin(badnesses)]
         for j, p in enumerate(ps):
@@ -78,14 +68,13 @@ if __name__ == "__main__":
 
     ax.imshow(img, cmap=cm.Blues, interpolation='nearest', aspect="auto",
               extent=(0, secs, 11.5, -.5))
-    ax.plot(numpy.arange(width) * secs / width, best, 'g', linewidth=2)
 
     labels = [y_formatter(i) for i, r in enumerate(rates.RATES)]
     formatter = ticker.FixedFormatter(['-'] + labels)
     ax.get_yaxis().set_major_formatter(formatter)
 
     if len(sys.argv) > 2:
-        alpha = .5 ** (secs / 256)
+        alpha = .5 ** (secs / 256) * .75
 
         alg, log = eval(open(sys.argv[2], "rt").read())
         title = "{}, simulation of \"{}\"".format(title, alg)
@@ -99,6 +88,8 @@ if __name__ == "__main__":
                   for t, rix, stat in log if not stat]
         ax.plot(good_x, good_y, 'yo', alpha=alpha)
         ax.plot(bad_x, bad_y, 'ro', alpha=alpha)
+
+    ax.plot(numpy.arange(width) * secs / width, best, '#ff00ff', linewidth=3)
 
     ax.set_title(title)
     pylab.show()
