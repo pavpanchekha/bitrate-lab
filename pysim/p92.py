@@ -7,11 +7,11 @@ SR_LEVEL = .25
 class P92(P92Simple):
     class Rate(P92Simple.Rate):
         def __init__(self, rix, info):
-            Alpha.Rate.__init__(self, rix, info)
+            P92Simple.Rate.__init__(self, rix, info)
             self.last_sortchange = None
 
         def init(self, time):
-            Alpha.Rate.init(self, time)
+            P92Simple.Rate.init(self, time)
             self.last_sortchange = time
 
         def report_sortchange(self, time, pt, delta):
@@ -35,7 +35,7 @@ class P92(P92Simple):
                 self.samplerate = 1e9
 
         def report_actual(self, time, status):
-            Alpha.Rate.report_actual(self, time, status)
+            P92Simple.Rate.report_actual(self, time, status)
             self.samplerate = self.samplerate_normal
 
         def __repr__(self):
@@ -47,7 +47,7 @@ class P92(P92Simple):
         rate = self.RATES[rix]
 
         oldpos = self.rates_sorted.index(rate)
-        Alpha.process_feedback(self, status, timestamp, delay, tries)
+        P92Simple.process_feedback(self, status, timestamp, delay, tries)
         newpos = self.rates_sorted.index(rate)
 
         change = newpos - oldpos
