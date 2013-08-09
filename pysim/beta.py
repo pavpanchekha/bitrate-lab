@@ -2,7 +2,7 @@ from alpha import Alpha, ewma, EWMA_LEVEL
 from constant import initialize
 import bits
 
-SR_LEVEL = .9
+SR_LEVEL = .25
 
 class Beta(Alpha):
     class Rate(Alpha.Rate):
@@ -18,15 +18,18 @@ class Beta(Alpha):
             if delta == 0:
                 streaktime = time - self.last_sortchange
                 if streaktime > self.samplerate:
-                    self.samplerate = ewma(self.samplerate, streaktime, .1)
+                    self.samplerate = ewma(self.samplerate, streaktime, SR_LEVEL)
             else:
+                if pt > 3: return
                 streaktime = time - self.last_sortchange
                 self.last_sortchange = time
 
                 weight = SR_LEVEL ** (pt - abs(delta))
                 self.samplerate = ewma(self.samplerate, streaktime/10, weight)
 
-                #print self.mbps, ":", pt, "->", pt + delta, ":", round(self.samplerate/1e9, 3), "->", round(streaktime/10/1e9, 3)
+                #print self.mbps, ":", pt, "->", pt + delta, \
+                #    ":", round(self.samplerate/1e9, 3), \
+                #    "->", round(streaktime/10/1e9, 3)
 
             if self.samplerate > 1e9:
                 self.samplerate = 1e9

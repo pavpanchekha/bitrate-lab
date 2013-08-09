@@ -12,33 +12,45 @@ class Alpha(BitrateAlgorithm):
         def __init__(self, rix, info):
             BitrateAlgorithm.Rate.__init__(self, rix, info)
             self.probability = 1.0
-            self.samplerate = 3e8
+            self.confidence = 0
+            self.samplerate = 1e8
             self.samplerate_normal = self.samplerate
-            self.decayrate  = 10 * self.tx_time(.1) # Per millisecond
+            self.decayrate  = 5 * self.tx_time()
             
             # Time of next sample
             self.next_sample = None
             self.last_sample = None
             self.last_actual = None
 
-        def report_sample(self, time, status):
-            timespan = time - self.last_sample
-            self.next_sample = time + (random.random() + .5) * self.samplerate
-            self.last_sample = time
-
-            self.probability = ewma(self.probability, 1.0 if status else 0.0,
-                                    timespan / self.samplerate_normal)
-
         def init(self, time):
             self.next_sample = time + (random.random() + .5) * self.samplerate
             self.last_sample = time
             self.last_actual = time
 
+        def report_sample(self, time, status):
+            timespan = time - self.last_sample
+            self.next_sample = time + (random.random() + .5) * self.samplerate
+            self.last_sample = time
+
+            #print self.mbps, self.confidence, status, round(self.probability, 2),
+            self.confidence += 1
+            self.probability = ewma(self.probability, 1.0 if status else 0.0,
+                                    timespan / self.samplerate_normal * \
+                                    1000 / self.confidence)
+            #print round(self.probability, 2)
+
+            self.recalc_decay()
+
         def report_actual(self, time, status):
             timespan = time - self.last_actual
             self.probability = ewma(self.probability, 1 if status else 0,
-                                    timespan / self.decayrate)
+                                    timespan / self.decayrate * \
+                                    1000 / (self.confidence + 1))
             self.last_actual = time
+            self.recalc_decay()
+
+        def recalc_decay(self):
+            self.decay_rate = 5 * self.tx_time()
 
         def tx_lossless(self, nbytes=1500):
             return bits.tx_lossless(self.idx, nbytes)
