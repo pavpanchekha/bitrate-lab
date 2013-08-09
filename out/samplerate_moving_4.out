@@ -1,0 +1,16 @@
+Running with random seed 7255464437237698345
+Simulation ran with 7546662 LUOPS
+[summary] 60.75 s to send 4022 packets (and 22016 failures)
+Average packet took 15.105 ms / achieved 0.794 Mbps
+  1.0 Mbps :   1604 tries (23% success;   20.8s total)
+  2.0 Mbps :   1509 tries (15% success;   10.5s total)
+  5.5 Mbps :   2787 tries (38% success;    7.7s total)
+ 11.0 Mbps :    653 tries (61% success;    1.1s total)
+  6.0 Mbps :     24 tries ( 0% success;    0.1s total)
+  9.0 Mbps :    130 tries (58% success;    0.2s total)
+ 12.0 Mbps :   7490 tries (20% success;   10.8s total)
+ 18.0 Mbps :    197 tries (85% success;    0.2s total)
+ 24.0 Mbps :     25 tries ( 0% success;    0.0s total)
+ 36.0 Mbps :  11570 tries ( 2% success;    9.3s total)
+ 48.0 Mbps :     24 tries ( 0% success;    0.0s total)
+ 54.0 Mbps :     25 tries ( 0% success;    0.0s total)
