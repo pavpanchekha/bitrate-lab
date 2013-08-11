@@ -251,3 +251,6 @@ class SampleRate(object):
 algorithm = SampleRate()
 apply_rate = algorithm.apply_rate
 process_feedback = algorithm.process_feedback
+
+def initialize(time):
+    pass

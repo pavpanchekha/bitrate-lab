@@ -4,8 +4,12 @@ import rates
 import os
 import bits
 
-# Very sneaky way of getting the data
-data = harness.load_data(os.environ["DATA"])[1]
+data = None
+
+def initialize(t):
+    global data
+    # Very sneaky way of getting the data
+    data = harness.load_data(os.environ["DATA"])[1]
 
 def apply_rate(t):
     ps = [harness.packet_stats(data, t, r) for r, _ in enumerate(rates.RATES)]

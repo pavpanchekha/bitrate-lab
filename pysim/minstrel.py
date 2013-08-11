@@ -304,3 +304,6 @@ def update_stats(timestamp):
         bestProb = max(RATES, key=lambda br: br.probability)
 
     choices = rate_struct(bestThruput, nextThruput, bestProb, choices.base)
+
+def initialize(time):
+    pass

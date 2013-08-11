@@ -69,12 +69,13 @@ def tx_time(rix, nbytes):
     return (sifs + ack + header + (nbytes * 8 / bitrate)) * 1000 # 1000 = us / ns
 
 class Harness:
-    def __init__(self, data, choose_rate, push_statistics):
+    def __init__(self, data, init, choose_rate, push_statistics):
         self.start = data[0]
         self.data = data[1]
         self.end = data[2]
 
         self.clock = data[0]
+        self.initialize = init
         self.choose_rate = choose_rate
         self.push_statistics = push_statistics
 
@@ -153,6 +154,7 @@ class Harness:
 
     def run(self):
         self.clock = self.start
+        self.initialize(self.start)
 
         good = 0
         bad = 0
@@ -206,7 +208,7 @@ if __name__ == "__main__":
     os.environ["DATA"] = data_file
     data = load_data(data_file)
     module = __import__(alg)
-    harness = Harness(data, module.apply_rate, module.process_feedback)
+    harness = Harness(data, module.initialize, module.apply_rate, module.process_feedback)
     time, good, bad = harness.run()
 
     if DEBUG: print()

@@ -1,3 +1,6 @@
+def initialize(time):
+    pass
+
 def apply_rate(time):
     return [(0, 1)] # Rate 0 (1 Mbps), 1 attempt
 
