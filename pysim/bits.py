@@ -62,3 +62,39 @@ def tx_time(rix, prob, nbytes):
                            (txtime + backoff(rix, i+1)) / prob)
 
     return score
+
+class BitrateAlgorithm(object):
+    class Rate(object):
+        def __init__(self, alg, time, rix):
+            self.alg = alg
+            self.idx = rix
+            self.info = rates.RATES[rix]
+            self.mbps = self.info.mbps
+
+        def __repr__(self):
+            return "<Rate {}>".format(self.mbps)
+
+    def __init__(self, time):
+        self.start_time = time
+        self.RATES = [self.Rate(self, time, rix)
+                      for rix, _ in enumerate(rates.RATES)]
+
+    def apply_rate(self, timestamp):
+        return [(0, 1)]
+
+    def process_feedback(self, status, timestamp, delay, tries):
+        pass
+
+def methods(cls):
+    inst = [None]
+
+    def initialize(time):
+        inst[0] = cls(time)
+    def apply_rate(time):
+        assert inst[0], "Algorithm not properly initialized"
+        return inst[0].apply_rate(time)
+    def process_feedback(status, time, delay, tries):
+        assert inst[0], "Algorithm not properly initialized"
+        return inst[0].process_feedback(status, time, delay, tries)
+
+    return initialize, apply_rate, process_feedback
