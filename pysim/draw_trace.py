@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     for i in range(0, width):
         t = (i + .5) / width * (end - start) + start
-        ps = [harness.packet_stats(data, t, r) for r, _ in enumerate(data)]
+        ps = [harness.packet_stats(data[r], t, r) for r, _ in enumerate(data)]
         badnesses = [bits.tx_time(rix, p, 1500) for rix, p in enumerate(ps)]
 
         best[i] = perm[numpy.argmin(badnesses)]

@@ -4,39 +4,31 @@ import time
 import rates
 import os, sys
 import random
+import bisect
 
 DEBUG = "DEBUG" in os.environ
 
 def load_data(source):
     return eval(open(source, "rt").read())
 
-WINDOW = 1e7 # 10ms
+WINDOW = 25e6 # on-sided, so overall 20ms smoothing window
 LUOPS = 0
 CACHE = [[0, WINDOW] for r in rates.RATES]
 def packet_stats(data, time, rate):
     global LUOPS
 
-    txs = []
-    while not txs:
-        idx, w = CACHE[rate]
-        CACHE[rate][0] = 0
+    w = WINDOW
+    start_idx, end_idx = None, None
+    while start_idx == end_idx:
+        time_start = time - w
+        time_end = time + w
 
-        for i in range(idx, len(data[rate])):
-            t, success, delay = data[rate][i]
-            LUOPS += 1
-
-            if abs(t - time) < w:
-                txs.append((success, delay))
-                if not CACHE[rate][0]:
-                    CACHE[rate][0] = i
-                    CACHE[rate][1] = min(w / 1.5, WINDOW)
-
-            if t > w + time:
-                break
-
-        CACHE[rate][1] *= 2
-
-    successful = [tx for tx in txs if tx[0]]
+        start_idx = bisect.bisect(data, (time_start, None, None,))
+        end_idx = bisect.bisect(data, (time_end, None, None))
+        #print(time_start, time_end, start_idx, end_idx, w)
+        w *= 2
+    txs = data[start_idx:end_idx]
+    successful = [tx for tx in txs if tx[1]]
 
     return len(successful) / len(txs)
 
@@ -118,7 +110,7 @@ class Harness:
         tot_tries = []
         tot_status = None
         for (rate, tries) in rate_arr:
-            p_success = packet_stats(self.data, self.clock, rate)
+            p_success = packet_stats(self.data[rate], self.clock, rate)
 
             s_tries = 0
             succeeded = False
