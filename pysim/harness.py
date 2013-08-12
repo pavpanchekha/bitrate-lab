@@ -208,7 +208,7 @@ if __name__ == "__main__":
     print("Simulation ran with {} LUOPS".format(LUOPS))
     print("[summary] {:.2f} s to send {} packets (and {} failures)".format(time / 1e9, good, bad))
     throughput = 1500 * 8 * good / (time / 1e9) / 1e6
-    print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / good / 1e6, throughput))
+    print("Average packet took {:.3f} ms / achieved {:.3f} Mbps".format(time / good / 1e6 if good else float('inf'), throughput))
 
     for rate_idx, info in enumerate(harness.histogram):
         tries, successes, sending_t, backoff_t, total_t = info
