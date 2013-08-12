@@ -1,20 +1,24 @@
 import random
 import bits
 
-class Base(bits.BitrateAlgorithm):
+class Louis(bits.BitrateAlgorithm):
+    # The weighting for old data in the EWMA algorithm; from Minstrel
     EWMA_LEVEL = .75
-    SAMPLE_NORMAL = .1e9 # Every .1 seconds
-    START_PROBABILITY = 1.0
-    NORMAL_DECAY = 5
+    # How frequently to sample "normally"; from Minstrel
+    SAMPLE_NORMAL = .3e9 # Every .1 seconds
+    # A multiplier for weighing normal packets.
+    # Relatively little effect on performance.
+    NORMAL_DECAY = 10
+    # How large packets are expected to be
     NBYTES = 1500
 
     class Rate(bits.BitrateAlgorithm.Rate):
         def __init__(self, alg, time, rix):
             bits.BitrateAlgorithm.Rate.__init__(self, alg, time, rix)
-            self.probability = self.alg.START_PROBABILITY
+            self.probability = 1.0
 
             self.samplerate = alg.SAMPLE_NORMAL
-            self.recalc_normalrate()
+            self.normalrate = alg.NORMAL_DECAY * self.tx_time()
             
             # Time of next sample
             self.next_sample = time
@@ -33,14 +37,12 @@ class Base(bits.BitrateAlgorithm):
 
             self.last_sample = time
             self.recalc_next_sample(time)
-            self.recalc_normalrate()
 
         def report_normal(self, time, status):
             timespan = time - self.last_actual
             self.probability = self.ewma(self.probability, 1 if status else 0,
                                          timespan / self.normalrate)
             self.last_actual = time
-            self.recalc_normalrate()
 
         def tx_time(self):
             return bits.tx_time(self.idx, self.probability, self.alg.NBYTES)
@@ -84,10 +86,13 @@ class Base(bits.BitrateAlgorithm):
 
         self.rates_sorted.sort(key=self.Rate.tx_time)
 
-Louis = Base
-
 class Armstrong(Louis):
+    # Exponential discount factor for place swaps
     SR_LEVEL = .25
+    # Max length of time between samples; from Minstrel
+    SAMPLE_MAX = 2e9
+    # Normal sampling rate decreased, since it will auto-adjust upwards
+    SAMPLE_NORMAL = .01e9 # Approximately the maximum sampling rate
 
     class Rate(Louis.Rate):
         def __init__(self, alg, time, rix):
@@ -108,8 +113,8 @@ class Armstrong(Louis):
                 weight = self.alg.SR_LEVEL ** (pt - abs(delta))
                 self.samplerate = self.ewma(self.samplerate, streaktime/10, weight)
 
-            if self.samplerate > 1e9:
-                self.samplerate = 1e9
+            if self.samplerate > self.alg.SAMPLE_MAX:
+                self.samplerate = self.alg.SAMPLE_MAX
 
         def report_normal(self, time, status):
             Louis.Rate.report_normal(self, time, status)
