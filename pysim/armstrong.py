@@ -5,7 +5,7 @@ class Louis(bits.BitrateAlgorithm):
     # The weighting for old data in the EWMA algorithm; from Minstrel
     EWMA_LEVEL = .75
     # How frequently to sample "normally"; from Minstrel
-    SAMPLE_NORMAL = .3e9 # Every .1 seconds
+    SAMPLE_NORMAL = .3e9 # Every .3 seconds
     # A multiplier for weighing normal packets.
     # Relatively little effect on performance.
     NORMAL_DECAY = 10
@@ -32,7 +32,7 @@ class Louis(bits.BitrateAlgorithm):
 
         def report_sample(self, time, status):
             timespan = time - self.last_sample
-            self.probability = self.ewma(self.probability, 1.0 if status else 0.0,
+            self.probability = self.ewma(self.probability, 1 if status else 0,
                                          timespan / self.alg.SAMPLE_NORMAL)
 
             self.last_sample = time
@@ -87,12 +87,12 @@ class Louis(bits.BitrateAlgorithm):
         self.rates_sorted.sort(key=self.Rate.tx_time)
 
 class Armstrong(Louis):
-    # Exponential discount factor for place swaps
-    SR_LEVEL = .25
     # Max length of time between samples; from Minstrel
     SAMPLE_MAX = 2e9
     # Normal sampling rate decreased, since it will auto-adjust upwards
     SAMPLE_NORMAL = .01e9 # Approximately the maximum sampling rate
+    # What position in the sorted bitrates past which to ignore sortorder changes
+    SORTORDER_CUTOFF = 4
 
     class Rate(Louis.Rate):
         def __init__(self, alg, time, rix):
@@ -100,18 +100,15 @@ class Armstrong(Louis):
             self.last_sortchange = time
 
         def report_sortchange(self, time, pt, delta):
-            if delta == 0:
-                streaktime = time - self.last_sortchange
-                if streaktime > self.samplerate:
-                    self.samplerate = self.ewma(self.samplerate, streaktime,
-                                                self.alg.SR_LEVEL)
-            else:
-                if pt > 3: return
-                streaktime = time - self.last_sortchange
-                self.last_sortchange = time
+            streaktime = time - self.last_sortchange
 
-                weight = self.alg.SR_LEVEL ** (pt - abs(delta))
-                self.samplerate = self.ewma(self.samplerate, streaktime/10, weight)
+            if delta == 0 and streaktime > self.samplerate:
+                self.samplerate = self.ewma(self.samplerate, streaktime, 1)
+            elif delta == 0:
+                return
+            elif pt < self.alg.SORTORDER_CUTOFF
+                self.last_sortchange = time
+                self.samplerate = self.ewma(self.samplerate, streaktime/10, 1)
 
             if self.samplerate > self.alg.SAMPLE_MAX:
                 self.samplerate = self.alg.SAMPLE_MAX
