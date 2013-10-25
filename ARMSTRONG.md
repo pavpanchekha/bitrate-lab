@@ -14,8 +14,7 @@ and easy to digest.  This document does not attempt to exhaustively
 document it, but instead tease a few general ideas out of Armstrong's
 design.
 
-Overview
---------
+# Overview
 
 Armstrong is similar to Minstrel and SampleRate in that it balances
 *sampling* bitrates that don't appear very good with *using* bitrates
@@ -31,8 +30,7 @@ bitrate's probability of success. Each bitrate is sampled at a
 different rate; rates that change in relative importance more often
 are sampled more frequently.
 
-Bitrate quality
----------------
+# Bitrate quality
 
 The quality of a bitrate is inversely related to its expected
 transmission time.  The expected transmission time is computed based
@@ -75,8 +73,7 @@ Note that this computation includes backoff, headers, the SIFS and
 DIFS, and the time to receive an acknowledgment (or determine that
 none was sent).
 
-Probability Estimation
-----------------------
+# Probability Estimation
 
 The bitrate quality estimation requires knowing the probability that a
 packet will be successfully transmitted.  This must be estimated.
@@ -85,18 +82,7 @@ the success probability.  This EWMA is fed zeros for every packet that
 failed to transmit successfully and ones for every packet that
 successfully transmitted.
 
-The EWMA estimate is computed via the formula:
-
-    def ewma(old, new, weight):
-        beta = EWMA_LEVEL / (1 - EWMA_LEVEL)
-        return (old * beta + new * weight) / (beta + weight)
-
-The constant `EWMA_LEVEL` is set to 0.75 by default (the same value as
-Minstrel), so `beta` is 3.  The weight is chosen on a per-packet
-basis.
-
-EWMA Weighting
---------------
+# EWMA Weighting
 
 Armstrong weights sample packets and use packets differently.  This
 avoids problems evident in Minstrel, which can take many hundreds of
@@ -107,8 +93,7 @@ transmission time for 10 packets at that bitrate.  In both cases, the
 EWMA weight is the time since the last such packet (at that rate and
 also use or sample) divided by the benchmark time.
 
-When to Sample
---------------
+# When to Sample
 
 Each bitrate maintains a sampling rate, its expected time between
 sample packets.  Each bitrate also schedules a sampling packet between
@@ -118,8 +103,7 @@ Armstrong sends a sampling packet at that bitrate; otherwise it sends
 a use packet.  If multiple bitrates would like to send a sampling
 packet, Armstrong chooses one rate uniformly at random.
 
-Choosing the Sampling Rate
---------------------------
+# Choosing the Sampling Rate
 
 The sampling rate is based on the expected time between sort order
 changes.  Imagine sorting the bitrates in increasing order of expected
@@ -130,21 +114,28 @@ down in the sorted sequence of bitrates.  If the bitrate was among the
 top four bitrates before the move, this is termed a *sort-order
 change*.  Armstrong maintains the sampling rate as an
 exponentially-weighted moving average of the frequency of sort-order
-changes times a multiplier; the multiplier is $\sqrt{2}$ to the power
-of the current position of the rate in the sorting order (minus 4).
-As a result, the worst rate is sampled 11 times less frequently than
-it changes sort order, while the second-best rate is sampled 3 times
-for every sort order change.  No sample rate is allowed to increase
-beyond two seconds (a cutoff inspired by Minstrel).  When a bitrate is
-the best bitrate, and thus the bitrate used by use packets, its
-sampling rate is reset to the "normal sampling rate" of 10
-milliseconds.
+changes times a multiplier; the multiplier varies exponentially with
+the position of the rate in the sorting order.  No sample rate is
+allowed to increase beyond two seconds (a cutoff inspired by
+Minstrel).  When a bitrate is the best bitrate, and thus the bitrate
+used by use packets, its sampling rate is reset to the "normal
+sampling rate" of 10 milliseconds.
 
-If a bitrate does not experience sort-order changes, but the time
-since its last sort-order change is greater than its sampling rate,
-its sampling rate is increased with
+# Why is Armstrong Better?
 
-    ewma(samplerate, multiplier * streaktime, 1)
-    
-where the `streaktime` is the time since the last sort-order change,
-and 1 represents the weight in the EWMA.
+Armstrong has a few core ideas that improve on previous algorithms:
+
+ + Accurate transmission time estimation. Previous algorithms got this
+   wrong or took shortcuts; it turns out that if you're optimizing for
+   the wrong thing, it doesn't matter how close you get.
+   
+ + Sampling rates that are worse than the current one.  One day the
+   current rate will no longer be the best rate, and on that day you
+   will want to know which rate is second-best.
+   
+ + Tuning each rate's sampling rate.  Rates that never work should be
+   infrequently sampled; Armstrong solves this with an algorithm based
+   on sort order changes.
+
+These three ideas form the core of Armstrong and, in fact, Armstrong
+more or less lacks other ideas at all.
