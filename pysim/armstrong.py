@@ -2,20 +2,28 @@ import random
 import bits
 
 class Louis(bits.BitrateAlgorithm):
-    # The weighting for old data in the EWMA algorithm; from Minstrel
-    EWMA_LEVEL = .75
+    # The weighting for old data in the EWMA algorithm; equal to level of 75%
+    EWMA_BETA = 3
+    # The fixed-point arithmetic shift
+    SCALE = 16
     # How frequently to sample "normally"; from Minstrel
     SAMPLE_NORMAL = .3e9 # Every .3 seconds
     # A multiplier for weighing normal packets.
     # Relatively little effect on performance.
     NORMAL_DECAY = 10
     # How large packets are expected to be
-    NBYTES = 1500
+    NBYTES = 1200
+
+    def FRAC(self, val, div):
+        return (val << self.SCALE) // div
+
+    def TRUNC(self, val):
+        return val >> self.SCALE
 
     class Rate(bits.BitrateAlgorithm.Rate):
         def __init__(self, alg, time, rix):
             bits.BitrateAlgorithm.Rate.__init__(self, alg, time, rix)
-            self.probability = 1.0
+            self.probability = 1 << self.alg.SCALE
 
             self.samplerate = alg.SAMPLE_NORMAL
             self.normalrate = alg.NORMAL_DECAY * self.tx_time()
@@ -27,31 +35,33 @@ class Louis(bits.BitrateAlgorithm):
             self.recalc_next_sample(time)
 
         def ewma(self, old, new, weight):
-            beta = self.alg.EWMA_LEVEL / (1 - self.alg.EWMA_LEVEL)
-            return (old * beta + new * weight) / (beta + weight)
+            beta = self.alg.EWMA_BETA * 256
+            return (old * beta + new * weight) // (beta + weight)
 
         def report_sample(self, time, status):
             timespan = time - self.last_sample
-            self.probability = self.ewma(self.probability, 1 if status else 0,
-                                         timespan / self.alg.SAMPLE_NORMAL)
+            scale = 1 << self.alg.SCALE
+            self.probability = self.ewma(self.probability,
+                                         scale if status else 0,
+                                         (256 * timespan) // self.alg.SAMPLE_NORMAL)
 
             self.last_sample = time
             self.recalc_next_sample(time)
 
         def report_normal(self, time, status):
             timespan = time - self.last_actual
-            self.probability = self.ewma(self.probability, 1 if status else 0,
-                                         timespan / self.normalrate)
+            scale = 1 << self.alg.SCALE
+            self.probability = self.ewma(self.probability,
+                                         scale if status else 0,
+                                         (256 * timespan) // self.normalrate)
             self.last_actual = time
 
         def tx_time(self):
-            return bits.tx_time(self.idx, self.probability, self.alg.NBYTES)
-
-        def recalc_normalrate(self):
-            self.normalrate = self.alg.NORMAL_DECAY * self.tx_time()
+            prob = self.probability / (1 << self.alg.SCALE)
+            return bits.tx_time(self.idx, prob, self.alg.NBYTES)
 
         def recalc_next_sample(self, time):
-            self.next_sample = time + (random.random() + .5) * self.samplerate
+            self.next_sample = int(time + (random.random() + .5) * self.samplerate)
 
         def __repr__(self):
             return "<Rate {} p={:.3f}>".format(self.mbps, self.probability)
