@@ -101,8 +101,12 @@ class Armstrong(Louis):
     SAMPLE_MAX = 2e9
     # Normal sampling rate decreased, since it will auto-adjust upwards
     SAMPLE_NORMAL = .01e9 # Approximately the maximum sampling rate
-    # What position in the sorted bitrates past which to ignore sortorder changes
-    SORTORDER_CUTOFF = 4
+    # What position in the sorted bitrates should have sampling rate
+    # equal reorder rate?
+    SORTORDER_EVEN = 4
+    # How much (multiplicatively) each step in sort order should
+    # change things.
+    SORTORDER_STEP = 1.414
 
     class Rate(Louis.Rate):
         def __init__(self, alg, time, rix):
@@ -111,14 +115,15 @@ class Armstrong(Louis):
 
         def report_sortchange(self, time, pt, delta):
             streaktime = time - self.last_sortchange
+            multiply = self.alg.SORTORDER_STEP ** (pt - self.alg.SORTORDER_EVEN)
 
             if delta == 0 and streaktime > self.samplerate:
-                self.samplerate = self.ewma(self.samplerate, streaktime, 1)
+                self.samplerate = self.ewma(self.samplerate, multiply * streaktime, 256)
             elif delta == 0:
                 return
-            elif pt < self.alg.SORTORDER_CUTOFF
+            else:
                 self.last_sortchange = time
-                self.samplerate = self.ewma(self.samplerate, streaktime/10, 1)
+                self.samplerate = self.ewma(self.samplerate, multiply * streaktime, 256)
 
             if self.samplerate > self.alg.SAMPLE_MAX:
                 self.samplerate = self.alg.SAMPLE_MAX
