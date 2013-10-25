@@ -26,26 +26,10 @@ must answer:
 
  + When to sample and when to use
 
-To answer these questions, Armstrong uses the following rules:
-
- + The bitrate quality is estimated based on its probability of
-   success using the expected time to successfully transmit a packet
-   at that bitrate.
-
- + The probability of success for a bitrate is estimated based on an
-   exponentially-weighted moving average.
-
- + The EWMA weights are different for sample and use packets.  Use
-   packets are weighted relative to the lossless transmission time;
-   sample packets are weighted relative to the normal sampling rate.
-
- + To determine when to sample, each rate has a *samplerate*, the
-   expected time between samples.  From this a sampling time is chosen.
-
- + The samplerate is at first set to a constant, but thereafter
-   varies.  The samplerate is set lower for rates that are both
-   important (low transmission time) and change their relative
-   importance often.
+Armstrong estimates bitrate quality from an EWMA measuring that
+bitrate's probability of success. Each bitrate is sampled at a
+different rate; rates that change in relative importance more often
+are sampled more frequently.
 
 Bitrate quality
 ---------------
@@ -144,19 +128,23 @@ the bitrate it was sent at may change, and thus the expected
 transmission time may also change.  This may move the bitrate up or
 down in the sorted sequence of bitrates.  If the bitrate was among the
 top four bitrates before the move, this is termed a *sort-order
-change*.  Armstrong sets the sampling rate for each bitrate to on
-tenth the expected time between sort-order changes for that bitrate,
-computed with another exponentially-weighted moving average (always
-with weight 1).  No sample rate is allowed to increase beyond two
-seconds (a cutoff inspired by Minstrel).  When a bitrate is the best
-bitrate, and thus the bitrate used by use packets, its sampling rate
-is reset to the "normal sampling rate" of 10 milliseconds.
+change*.  Armstrong maintains the sampling rate as an
+exponentially-weighted moving average of the frequency of sort-order
+changes times a multiplier; the multiplier is $\sqrt{2}$ to the power
+of the current position of the rate in the sorting order (minus 4).
+As a result, the worst rate is sampled 11 times less frequently than
+it changes sort order, while the second-best rate is sampled 3 times
+for every sort order change.  No sample rate is allowed to increase
+beyond two seconds (a cutoff inspired by Minstrel).  When a bitrate is
+the best bitrate, and thus the bitrate used by use packets, its
+sampling rate is reset to the "normal sampling rate" of 10
+milliseconds.
 
 If a bitrate does not experience sort-order changes, but the time
 since its last sort-order change is greater than its sampling rate,
 its sampling rate is increased with
 
-    ewma(samplerate, streaktime, 1)
+    ewma(samplerate, multiplier * streaktime, 1)
     
 where the `streaktime` is the time since the last sort-order change,
 and 1 represents the weight in the EWMA.
